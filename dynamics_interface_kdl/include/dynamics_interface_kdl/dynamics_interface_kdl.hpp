@@ -1,4 +1,4 @@
-// Copyright (c) 2022, PickNik, Inc.
+// Copyright 2024 ICUBE Laboratory, University of Strasbourg
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-/// \author: Andy Zelenak, Paul Gesel
-/// \description: KDL plugin for kinematics interface
+/// \authors: Thibault Poignonec
+
+// Based on package "ros-controls/kinematics_interface_kdl", Copyright (c) 2022, PickNik, Inc.
 
 #ifndef DYNAMICS_INTERFACE_KDL__DYNAMICS_INTERFACE_KDL_HPP_
 #define DYNAMICS_INTERFACE_KDL__DYNAMICS_INTERFACE_KDL_HPP_

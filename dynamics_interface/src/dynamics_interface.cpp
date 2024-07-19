@@ -1,4 +1,4 @@
-// Copyright (c) 2022, PickNik, Inc.
+// Copyright 2024 ICUBE Laboratory, University of Strasbourg
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-/// \author: Andy Zelenak, Paul Gesel
-/// \description: Base class for kinematics interface
+/// \authors: Thibault Poignonec
+
+// Based on package "ros-controls/kinematics_interface", Copyright (c) 2022, PickNik, Inc.
+
+/// \description: Base class for dynamics interface
 
 #include "dynamics_interface/dynamics_interface.hpp"
 
