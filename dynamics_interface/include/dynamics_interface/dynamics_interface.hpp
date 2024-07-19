@@ -133,14 +133,6 @@ public:
     const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & delta_theta,
     const std::string & link_name, Eigen::Matrix<double, 6, 1> & delta_x) = 0;
 
-  bool convert_cartesian_deltas_to_joint_deltas(
-    std::vector<double> & joint_pos_vec, const std::vector<double> & delta_x_vec,
-    const std::string & link_name, std::vector<double> & delta_theta_vec);
-
-  bool convert_joint_deltas_to_cartesian_deltas(
-    const std::vector<double> & joint_pos_vec, const std::vector<double> & delta_theta_vec,
-    const std::string & link_name, std::vector<double> & delta_x_vec);
-
   bool calculate_link_transform(
     const std::vector<double> & joint_pos_vec, const std::string & link_name,
     Eigen::Isometry3d & transform);
@@ -148,6 +140,28 @@ public:
   bool calculate_jacobian(
     const std::vector<double> & joint_pos_vec, const std::string & link_name,
     Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian);
+
+  bool calculate_jacobian_derivative(
+    const std::vector<double> & joint_pos_vec, const std::vector<double> & joint_vel_vec,
+    const std::string & link_name, Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative);
+
+  bool calculate_inertia(
+    const std::vector<double> & joint_pos_vec,
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia);
+
+  bool calculate_coriolis(
+    const std::vector<double> & joint_pos_vec, const std::vector<double> & joint_vel_vec,
+    Eigen::VectorXd & coriolis);
+
+  bool calculate_gravity(const std::vector<double> & joint_pos_vec, Eigen::VectorXd & gravity);
+
+  bool convert_cartesian_deltas_to_joint_deltas(
+    std::vector<double> & joint_pos_vec, const std::vector<double> & delta_x_vec,
+    const std::string & link_name, std::vector<double> & delta_theta_vec);
+
+  bool convert_joint_deltas_to_cartesian_deltas(
+    const std::vector<double> & joint_pos_vec, const std::vector<double> & delta_theta_vec,
+    const std::string & link_name, std::vector<double> & delta_x_vec);
 };
 
 }  // namespace dynamics_interface

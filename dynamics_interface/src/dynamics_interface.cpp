@@ -83,4 +83,36 @@ bool DynamicsInterface::calculate_jacobian(
   return calculate_jacobian(joint_pos, link_name, jacobian);
 }
 
+bool DynamicsInterface::calculate_jacobian_derivative(
+  const std::vector<double> & joint_pos_vec, const std::vector<double> & joint_vel_vec,
+  const std::string & link_name, Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative)
+{
+  auto joint_pos = Eigen::Map<const Eigen::VectorXd>(joint_pos_vec.data(), joint_pos_vec.size());
+  auto joint_vel = Eigen::Map<const Eigen::VectorXd>(joint_vel_vec.data(), joint_vel_vec.size());
+  return calculate_jacobian_derivative(joint_pos, joint_vel, link_name, jacobian_derivative);
+}
+
+bool DynamicsInterface::calculate_inertia(
+  const std::vector<double> & joint_pos_vec,
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia)
+{
+  auto joint_pos = Eigen::Map<const Eigen::VectorXd>(joint_pos_vec.data(), joint_pos_vec.size());
+  return calculate_inertia(joint_pos, inertia);
+}
+
+bool DynamicsInterface::calculate_coriolis(
+  const std::vector<double> & joint_pos_vec, const std::vector<double> & joint_vel_vec,
+  Eigen::VectorXd & coriolis)
+{
+  auto joint_pos = Eigen::Map<const Eigen::VectorXd>(joint_pos_vec.data(), joint_pos_vec.size());
+  auto joint_vel = Eigen::Map<const Eigen::VectorXd>(joint_vel_vec.data(), joint_vel_vec.size());
+  return calculate_coriolis(joint_pos, joint_vel, coriolis);
+}
+
+bool DynamicsInterface::calculate_gravity(
+  const std::vector<double> & joint_pos_vec, Eigen::VectorXd & gravity)
+{
+  auto joint_pos = Eigen::Map<const Eigen::VectorXd>(joint_pos_vec.data(), joint_pos_vec.size());
+  return calculate_gravity(joint_pos, gravity);
+}
 }  // namespace dynamics_interface
