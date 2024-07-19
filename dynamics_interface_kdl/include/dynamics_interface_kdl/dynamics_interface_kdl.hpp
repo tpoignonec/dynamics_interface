@@ -26,6 +26,7 @@
 
 #include "eigen3/Eigen/Core"
 #include "eigen3/Eigen/LU"
+#include "kdl/chaindynparam.hpp"
 #include "kdl/chainfksolverpos_recursive.hpp"
 #include "kdl/chainfksolvervel_recursive.hpp"
 #include "kdl/chainjnttojacsolver.hpp"
@@ -65,11 +66,12 @@ public:
 
   bool calculate_coriolis(
     const Eigen::VectorXd & joint_pos,
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia) override;
+    const Eigen::VectorXd & joint_vel,
+    Eigen::VectorXd & coriolis) override;
 
   bool calculate_gravity(
     const Eigen::VectorXd & joint_pos,
-    Eigen::Matrix<double, Eigen::Dynamic, 1> & gravity) override;
+    Eigen::VectorXd & gravity) override;
 
   bool convert_cartesian_deltas_to_joint_deltas(
     const Eigen::VectorXd & joint_pos, const Eigen::Matrix<double, 6, 1> & delta_x,
@@ -85,9 +87,13 @@ private:
   bool verify_link_name(const std::string & link_name);
   bool verify_joint_vector(const Eigen::VectorXd & joint_vector);
   bool verify_jacobian(const Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian);
+  bool verify_inertia(const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia);
+  bool verify_coriolis(const Eigen::VectorXd & coriolis);
+  bool verify_gravity(const Eigen::VectorXd & gravity);
 
   bool initialized = false;
   std::string root_name_;
+  KDL::Vector gravity_;
   size_t num_joints_;
   KDL::Chain chain_;
   std::shared_ptr<KDL::ChainFkSolverPos_recursive> fk_pos_solver_;
@@ -95,8 +101,10 @@ private:
   KDL::JntArrayVel q_array_vel_;
   KDL::Frame frame_;
   std::shared_ptr<KDL::Jacobian> jacobian_, jacobian_derivative_;
+  std::shared_ptr<KDL::JntSpaceInertiaMatrix> inertia_;
   std::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
   std::shared_ptr<KDL::ChainJntToJacDotSolver> jac_dot_solver_;
+  std::shared_ptr<KDL::ChainDynParam> dyn_solver_;
   std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface_;
   std::unordered_map<std::string, int> link_name_map_;
   double alpha;  // damping term for Jacobian inverse

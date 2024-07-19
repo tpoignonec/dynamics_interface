@@ -92,14 +92,16 @@ public:
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia) = 0;
 
   /**
-   * \brief Calculates the Coriolis matrix C.
+   * \brief Calculates the vector containing the Coriolis and centrifugal terms (i.e., C @ q_dot).
    * \param[in] joint_pos joint positions of the robot in radians
-   * \param[out] coriolis coriolis matrix
+   * \param[in] joint_vel joint velocities of the robot in radians per second
+   * \param[out] coriolis coriolis and centrifugal terms
    * \return true if successful
    */
   virtual bool calculate_coriolis(
     const Eigen::VectorXd & joint_pos,
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia) = 0;
+    const Eigen::VectorXd & joint_vel,
+    Eigen::VectorXd & coriolis) = 0;
 
   /**
    * \brief Calculates the gravity matrix G (i.e., external torques resulting from gravity).
@@ -109,7 +111,7 @@ public:
    */
   virtual bool calculate_gravity(
     const Eigen::VectorXd & joint_pos,
-    Eigen::Matrix<double, Eigen::Dynamic, 1> & gravity) = 0;
+    Eigen::VectorXd & gravity) = 0;
 
   /**
    * \brief Convert Cartesian delta-x to joint delta-theta, using the Jacobian.

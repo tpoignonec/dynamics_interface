@@ -62,6 +62,39 @@ bool DynamicsInterfaceKDL::initialize(
     root_name_ = robot_tree.getRootSegment()->first;
   }
 
+  // get gravity vector in base frame
+  auto gravity_param = rclcpp::Parameter();
+  if (parameters_interface->has_parameter("gravity"))
+  {
+    parameters_interface->get_parameter("gravity", gravity_param);
+    std::vector< double > gravity_vec = gravity_param.as_double_array();
+    if (gravity_vec.size() != 3) {
+      RCLCPP_ERROR(
+        LOGGER, "The size of the gravity vector (%zu) does not match the required size of 3",
+        gravity_vec.size());
+      return false;
+    }
+    gravity_[0] = gravity_vec[0];
+    gravity_[1] = gravity_vec[1];
+    gravity_[2] = gravity_vec[2];
+  }
+  else
+  {
+    RCLCPP_ERROR(
+        LOGGER, "Please specify a gravity vector in base frame '%s'.",
+        root_name_.c_str());
+    return false;
+    /*
+    // default gravity vector
+    gravity_[0] = 0.0;
+    gravity_[1] = 0.0;
+    gravity_[2] = -9.81;
+    RCLCPP_INFO(
+      LOGGER, "Gravity set to %f %f %f w.r.t. base frame '%s'.",
+      gravity_[0], gravity_[1], gravity_[2], root_name_.c_str());
+    */
+  }
+
   if (!robot_tree.getChain(root_name_, end_effector_name, chain_))
   {
     RCLCPP_ERROR(
@@ -88,6 +121,9 @@ bool DynamicsInterfaceKDL::initialize(
   fk_pos_solver_ = std::make_shared<KDL::ChainFkSolverPos_recursive>(chain_);
   jac_solver_ = std::make_shared<KDL::ChainJntToJacSolver>(chain_);
   jac_dot_solver_ = std::make_shared<KDL::ChainJntToJacDotSolver>(chain_);
+  dyn_solver_ = std::make_shared<KDL::ChainDynParam>(chain_, gravity_);
+
+  // pre-allocation of memory
   jacobian_ = std::make_shared<KDL::Jacobian>(num_joints_);
   jacobian_derivative_ = std::make_shared<KDL::Jacobian>(num_joints_);
   // inertia_ = std::make_shared<KDL::JntSpaceInertiaMatrix>(num_joints_);
@@ -157,8 +193,9 @@ bool DynamicsInterfaceKDL::calculate_jacobian_derivative(
 {
   // verify inputs
   if (
-    !verify_initialized() || !verify_joint_vector(joint_pos) || !verify_link_name(link_name) ||
-    !verify_jacobian(jacobian_derivative))
+    !verify_initialized() ||
+    !verify_joint_vector(joint_pos) || !verify_joint_vector(joint_vel) ||
+    !verify_link_name(link_name) || !verify_jacobian(jacobian_derivative))
   {
     return false;
   }
@@ -180,6 +217,58 @@ bool DynamicsInterfaceKDL::calculate_jacobian_derivative(
 // Dynamics
 // --------------------------------------------------------------------
 
+
+bool DynamicsInterfaceKDL::calculate_inertia(
+  const Eigen::VectorXd & joint_pos,
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia)
+{
+  // verify inputs
+  if (!verify_initialized() || !verify_joint_vector(joint_pos) || !verify_inertia(inertia))
+  {
+    return false;
+  }
+
+  // TODO(tpoignonec) use KDL::ChainDynParam::JntToMass
+  return false;
+}
+
+bool DynamicsInterfaceKDL::calculate_coriolis(
+  const Eigen::VectorXd & joint_pos,
+  const Eigen::VectorXd & joint_vel,
+  Eigen::Matrix<double, Eigen::Dynamic, 1> & coriolis)
+{
+  // verify inputs
+  if (
+    !verify_initialized() ||
+    !verify_joint_vector(joint_pos) || !verify_joint_vector(joint_vel) ||
+    !verify_coriolis(coriolis))
+  {
+    return false;
+  }
+
+  // TODO(tpoignonec) use KDL::ChainDynParam::JntToCoriolis
+  return false;
+}
+
+bool DynamicsInterfaceKDL::calculate_gravity(
+  const Eigen::VectorXd & joint_pos,
+  Eigen::Matrix<double, Eigen::Dynamic, 1> & gravity)
+{
+  // verify inputs
+  if (!verify_initialized() || !verify_joint_vector(joint_pos) || !verify_gravity(gravity))
+  {
+    return false;
+  }
+
+  // get joint array
+  q_.data = joint_pos;
+
+  // calculate gravity
+  // dyn_param.JntToGravity(q_, *gravity_);
+  // gravity = gravity_->data;
+
+  return false;
+}
 
 // Kinematics
 // --------------------------------------------------------------------
@@ -234,6 +323,9 @@ bool DynamicsInterfaceKDL::convert_cartesian_deltas_to_joint_deltas(
 
   return true;
 }
+
+// Verification functions
+// --------------------------------------------------------------------
 
 bool DynamicsInterfaceKDL::verify_link_name(const std::string & link_name)
 {
@@ -291,6 +383,46 @@ bool DynamicsInterfaceKDL::verify_jacobian(
       jacobian.rows(), jacobian.cols(), jacobian_->rows(), jacobian_->columns());
     return false;
   }
+  return true;
+}
+
+bool DynamicsInterfaceKDL::verify_inertia(
+  const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia)
+{
+  if (inertia.rows() != inertia_->rows() || inertia.cols() != inertia_->columns())
+  {
+    RCLCPP_ERROR(
+      LOGGER, "The size of the inertia matrix (%zu, %zu) does not match the required size of (%u, %u)",
+      inertia.rows(), inertia.cols(), inertia_->rows(), inertia_->columns());
+    return false;
+  }
+  return true;
+}
+
+bool DynamicsInterfaceKDL::verify_coriolis(
+  const Eigen::VectorXd & coriolis)
+{
+  if (static_cast<size_t>(coriolis.size()) != num_joints_)
+  {
+    RCLCPP_ERROR(
+      LOGGER, "The size of the coriolis vector (%zu) does not match the required size of (%lu)",
+      coriolis.size(), num_joints_);
+    return false;
+  }
+  return true;
+}
+
+bool DynamicsInterfaceKDL::verify_gravity(
+  const Eigen::VectorXd & gravity)
+{
+  if (static_cast<size_t>(gravity.size()) != num_joints_)
+  {
+    RCLCPP_ERROR(
+      LOGGER, "The size of the gravity vector (%zu) does not match the required size of (%lu)",
+      gravity.size(), num_joints_);
+    return false;
+  }
+
   return true;
 }
 
