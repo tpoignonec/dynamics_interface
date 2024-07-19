@@ -1,0 +1,9 @@
+<library path="dynamics_interface_kdl">
+  <class name="dynamics_interface_kdl/DynamicsInterfaceKDL"
+         type="dynamics_interface_kdl::DynamicsInterfaceKDL"
+         base_class_type="dynamics_interface::DynamicsInterface">
+    <description>
+      KDL plugin for ros2_control dynamics interface
+    </description>
+  </class>
+</library>
