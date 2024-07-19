@@ -18,3 +18,8 @@ $$
 where $H \in \mathbb{R}^{n \times n}$ is the inertia matrix, $C \in \mathbb{R}^{n \times n}$ is the Coriolis matrix, and $G(q) \mathbb{R}^{n}$ is the column vector containing the contribution of gravity.
 The (geometrical) Jacobian matrix is denoted $J(q) \mathbb{R}^{6 \times n}$ and the external wrench is $f_{ext} \mathbb{R}^{6}$.
 Note that this sign convention consider the external wrench performing work on the cartesian velocity, hence NOT the wrench applied onto the robot... Typically, $f_{ext} = - f_{sensor}$, where $f_{sensor}$ is the external wrench measurement from a f/t sensor attached to the robot's end-effector.
+
+
+__TODO:__
+  - compute Coriolis matrix? Does not seem trivial with KDL, but should be easy with [Pinocchio](https://github.com/stack-of-tasks/pinocchio).
+  - manage redundancy here? For instance, with some function like `convert_cartesian_wrench_to_joint_torque` that implement null-space objectives under the hood.
