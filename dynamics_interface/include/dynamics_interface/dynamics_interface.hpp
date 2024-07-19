@@ -142,22 +142,18 @@ public:
     Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian);
 
   bool calculate_jacobian_derivative(
-    const std::vector<double> & joint_pos_vec,
-    const std::vector<double> & joint_vel_vec,
-    const std::string & link_name,
-    Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative);
+    const std::vector<double> & joint_pos_vec, const std::vector<double> & joint_vel_vec,
+    const std::string & link_name, Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative);
 
   bool calculate_inertia(
     const std::vector<double> & joint_pos_vec,
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia);
 
   bool calculate_coriolis(
-    const std::vector<double> & joint_pos_vec,
-    const std::vector<double> & joint_vel_vec,
+    const std::vector<double> & joint_pos_vec, const std::vector<double> & joint_vel_vec,
     Eigen::VectorXd & coriolis);
 
-  bool calculate_gravity(
-    const std::vector<double> & joint_pos_vec, Eigen::VectorXd & gravity);
+  bool calculate_gravity(const std::vector<double> & joint_pos_vec, Eigen::VectorXd & gravity);
 
   bool convert_cartesian_deltas_to_joint_deltas(
     std::vector<double> & joint_pos_vec, const std::vector<double> & delta_x_vec,
@@ -166,7 +162,6 @@ public:
   bool convert_joint_deltas_to_cartesian_deltas(
     const std::vector<double> & joint_pos_vec, const std::vector<double> & delta_theta_vec,
     const std::string & link_name, std::vector<double> & delta_x_vec);
-
 };
 
 }  // namespace dynamics_interface
