@@ -3,7 +3,7 @@ ROS 2 package for using C++ robot dynamics in control applications
 
 This package is based on the [ros-controls/kinematics_interface](https://github.com/ros-controls/kinematics_interface) package and add the following features useful for force or impedance control:
 - compute the joint inertia matrix $H(q)$ using `calculate_inertia`;
-- compute the Coriolis matrix $C(q, \dot{q})$ using `calculate_coriolis`;
+- compute the vector containing the Coriolis and centrifugal terms $C(q, \dot{q})$ using `calculate_coriolis`. Note that the so-called Coriolis matrix is NOT returned, but instead its dot product with $\dot{q}$;
 - compute the gravity terms $G(q)$ using `calculate_gravity`;
 - compute the time derivative of the Jacobian matrix $\dot{J}(q, \dot{q}) = \cfrac{d}{dt}J(q)$ using `calculate_derivative_jacobian`.
 
@@ -11,7 +11,7 @@ Given a robot with $n$ joints, the following notations are considered :
 
 $$
 \begin{align}
-  H(q) \ddot{q} + C(q, \dot{q}) \dot{q} + G(q) = \tau_c + J(q)^T f_{ext}
+  H(q) \ddot{q} + C(q, \dot{q}) + G(q) = \tau_c + J(q)^T f_{ext}
 \end{align}
 $$
 
