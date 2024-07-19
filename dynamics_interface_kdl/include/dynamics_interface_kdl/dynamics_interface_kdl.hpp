@@ -30,6 +30,7 @@
 #include "kdl/chainfksolvervel_recursive.hpp"
 #include "kdl/chainjnttojacsolver.hpp"
 #include "kdl/treejnttojacsolver.hpp"
+#include "kdl/chainjnttojacdotsolver.hpp"
 #include "kdl_parser/kdl_parser.hpp"
 #include "dynamics_interface/dynamics_interface.hpp"
 #include "rclcpp/node_interfaces/node_parameters_interface.hpp"
@@ -44,14 +45,6 @@ public:
     std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface,
     const std::string & end_effector_name) override;
 
-  bool convert_cartesian_deltas_to_joint_deltas(
-    const Eigen::VectorXd & joint_pos, const Eigen::Matrix<double, 6, 1> & delta_x,
-    const std::string & link_name, Eigen::VectorXd & delta_theta) override;
-
-  bool convert_joint_deltas_to_cartesian_deltas(
-    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & delta_theta,
-    const std::string & link_name, Eigen::Matrix<double, 6, 1> & delta_x) override;
-
   bool calculate_link_transform(
     const Eigen::VectorXd & joint_pos, const std::string & link_name,
     Eigen::Isometry3d & transform) override;
@@ -59,6 +52,32 @@ public:
   bool calculate_jacobian(
     const Eigen::VectorXd & joint_pos, const std::string & link_name,
     Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian) override;
+
+  bool calculate_jacobian_derivative(
+    const Eigen::VectorXd & joint_pos,
+    const Eigen::VectorXd & joint_vel,
+    const std::string & link_name,
+    Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative) override;
+
+  bool calculate_inertia(
+    const Eigen::VectorXd & joint_pos,
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia) override;
+
+  bool calculate_coriolis(
+    const Eigen::VectorXd & joint_pos,
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia) override;
+
+  bool calculate_gravity(
+    const Eigen::VectorXd & joint_pos,
+    Eigen::Matrix<double, Eigen::Dynamic, 1> & gravity) override;
+
+  bool convert_cartesian_deltas_to_joint_deltas(
+    const Eigen::VectorXd & joint_pos, const Eigen::Matrix<double, 6, 1> & delta_x,
+    const std::string & link_name, Eigen::VectorXd & delta_theta) override;
+
+  bool convert_joint_deltas_to_cartesian_deltas(
+    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & delta_theta,
+    const std::string & link_name, Eigen::Matrix<double, 6, 1> & delta_x) override;
 
 private:
   // verification methods
@@ -72,10 +91,12 @@ private:
   size_t num_joints_;
   KDL::Chain chain_;
   std::shared_ptr<KDL::ChainFkSolverPos_recursive> fk_pos_solver_;
-  KDL::JntArray q_;
+  KDL::JntArray q_, q_dot_;
+  KDL::JntArrayVel q_array_vel_;
   KDL::Frame frame_;
-  std::shared_ptr<KDL::Jacobian> jacobian_;
+  std::shared_ptr<KDL::Jacobian> jacobian_, jacobian_derivative_;
   std::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
+  std::shared_ptr<KDL::ChainJntToJacDotSolver> jac_dot_solver_;
   std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface_;
   std::unordered_map<std::string, int> link_name_map_;
   double alpha;  // damping term for Jacobian inverse

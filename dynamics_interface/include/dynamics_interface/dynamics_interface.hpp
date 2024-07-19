@@ -68,6 +68,20 @@ public:
     Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian) = 0;
 
   /**
+   * \brief Calculates the time derivative of the jacobian for a specified link using provided joint positions.
+   * \param[in] joint_pos joint positions of the robot in radians
+   * \param[in] joint_vel joint velocities of the robot in radians per second
+   * \param[in] link_name the name of the link to find the transform for
+   * \param[out] jacobian_derivative Jacobian matrix of the specified link in column major format.
+   * \return true if successful
+   */
+  virtual bool calculate_jacobian_derivative(
+    const Eigen::VectorXd & joint_pos,
+    const Eigen::VectorXd & joint_vel,
+    const std::string & link_name,
+    Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative) = 0;
+
+  /**
    * \brief Calculates the joint inertia matrix H.
    * \param[in] joint_pos joint positions of the robot in radians
    * \param[out] inertia joint inertia matrix
