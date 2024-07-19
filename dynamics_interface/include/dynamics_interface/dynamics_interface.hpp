@@ -98,16 +98,6 @@ public:
     Eigen::Matrix<double, Eigen::Dynamic, 1> & gravity) = 0;
 
   /**
-   * \brief Calculates the joint inertia matrix projected in Cartesian space.
-   * \param[in] joint_pos joint positions of the robot in radians
-   * \param[out] inertia cartesian inertia matrix
-   * \return true if successful
-   */
-  virtual bool calculate_cartesian_inertia(
-    const Eigen::VectorXd & joint_pos,
-    Eigen::Matrix<double, 6, 6> & inertia) = 0;
-
-  /**
    * \brief Convert Cartesian delta-x to joint delta-theta, using the Jacobian.
    * \param[in] joint_pos joint positions of the robot in radians
    * \param[in] delta_x input Cartesian deltas (x, y, z, wx, wy, wz)
