@@ -89,7 +89,7 @@ private:
 
   bool initialized = false;
   std::string root_name_;
-  KDL::Vector gravity_;
+  KDL::Vector gravity_in_base_frame_;
   size_t num_joints_;
   KDL::Chain chain_;
   std::shared_ptr<KDL::ChainFkSolverPos_recursive> fk_pos_solver_;
@@ -98,6 +98,7 @@ private:
   KDL::Frame frame_;
   std::shared_ptr<KDL::Jacobian> jacobian_, jacobian_derivative_;
   std::shared_ptr<KDL::JntSpaceInertiaMatrix> inertia_;
+  KDL::JntArray coriolis_, gravity_;
   std::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
   std::shared_ptr<KDL::ChainJntToJacDotSolver> jac_dot_solver_;
   std::shared_ptr<KDL::ChainDynParam> dyn_solver_;

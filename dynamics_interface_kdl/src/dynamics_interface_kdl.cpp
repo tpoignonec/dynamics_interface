@@ -75,9 +75,9 @@ bool DynamicsInterfaceKDL::initialize(
         gravity_vec.size());
       return false;
     }
-    gravity_[0] = gravity_vec[0];
-    gravity_[1] = gravity_vec[1];
-    gravity_[2] = gravity_vec[2];
+    gravity_in_base_frame_[0] = gravity_vec[0];
+    gravity_in_base_frame_[1] = gravity_vec[1];
+    gravity_in_base_frame_[2] = gravity_vec[2];
   }
   else
   {
@@ -85,12 +85,12 @@ bool DynamicsInterfaceKDL::initialize(
     return false;
     /*
     // default gravity vector
-    gravity_[0] = 0.0;
-    gravity_[1] = 0.0;
-    gravity_[2] = -9.81;
+    gravity_in_base_frame_[0] = 0.0;
+    gravity_in_base_frame_[1] = 0.0;
+    gravity_in_base_frame_[2] = -9.81;
     RCLCPP_INFO(
       LOGGER, "Gravity set to %f %f %f w.r.t. base frame '%s'.",
-      gravity_[0], gravity_[1], gravity_[2], root_name_.c_str());
+      gravity_in_base_frame_[0], gravity_in_base_frame_[1], gravity_in_base_frame_[2], root_name_.c_str());
     */
   }
 
@@ -116,16 +116,17 @@ bool DynamicsInterfaceKDL::initialize(
   I = Eigen::MatrixXd(num_joints_, num_joints_);
   I.setIdentity();
 
+  jacobian_ = std::make_shared<KDL::Jacobian>(num_joints_);
+  jacobian_derivative_ = std::make_shared<KDL::Jacobian>(num_joints_);
+  inertia_ = std::make_shared<KDL::JntSpaceInertiaMatrix>(num_joints_);
+  // coriolis_ = KDL::JntArray(num_joints_);
+  // gravity_ = KDL::JntArray(num_joints_);
+
   // create KDL solvers
   fk_pos_solver_ = std::make_shared<KDL::ChainFkSolverPos_recursive>(chain_);
   jac_solver_ = std::make_shared<KDL::ChainJntToJacSolver>(chain_);
   jac_dot_solver_ = std::make_shared<KDL::ChainJntToJacDotSolver>(chain_);
-  dyn_solver_ = std::make_shared<KDL::ChainDynParam>(chain_, gravity_);
-
-  // pre-allocation of memory
-  jacobian_ = std::make_shared<KDL::Jacobian>(num_joints_);
-  jacobian_derivative_ = std::make_shared<KDL::Jacobian>(num_joints_);
-  inertia_ = std::make_shared<KDL::JntSpaceInertiaMatrix>(num_joints_);
+  dyn_solver_ = std::make_shared<KDL::ChainDynParam>(chain_, gravity_in_base_frame_);
 
   return true;
 }
@@ -223,8 +224,14 @@ bool DynamicsInterfaceKDL::calculate_inertia(
     return false;
   }
 
-  // TODO(tpoignonec) use KDL::ChainDynParam::JntToMass
-  return false;
+  // get joint array
+  q_.data = joint_pos;
+
+  // calculate inertia
+  dyn_solver_->JntToMass(q_, *inertia_);
+  inertia = inertia_->data;
+
+  return true;
 }
 
 bool DynamicsInterfaceKDL::calculate_coriolis(
@@ -238,8 +245,15 @@ bool DynamicsInterfaceKDL::calculate_coriolis(
     return false;
   }
 
-  // TODO(tpoignonec) use KDL::ChainDynParam::JntToCoriolis
-  return false;
+  // get joint array
+  q_.data = joint_pos;
+  q_dot_.data = joint_vel;
+
+  // calculate coriolis
+  dyn_solver_->JntToCoriolis(q_, q_dot_, coriolis_);
+  coriolis = coriolis_.data;
+
+  return true;
 }
 
 bool DynamicsInterfaceKDL::calculate_gravity(
@@ -255,10 +269,10 @@ bool DynamicsInterfaceKDL::calculate_gravity(
   q_.data = joint_pos;
 
   // calculate gravity
-  // dyn_param.JntToGravity(q_, *gravity_);
-  // gravity = gravity_->data;
+  dyn_solver_->JntToGravity(q_, gravity_);
+  gravity = gravity_.data;
 
-  return false;
+  return true;
 }
 
 // Kinematics
