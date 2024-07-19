@@ -37,6 +37,7 @@ bool DynamicsInterfaceKDL::initialize(
     return false;
   }
   auto robot_description = robot_param.as_string();
+
   // get alpha damping term
   auto alpha_param = rclcpp::Parameter("alpha", 0.000005);
   if (parameters_interface->has_parameter("alpha"))
@@ -44,6 +45,7 @@ bool DynamicsInterfaceKDL::initialize(
     parameters_interface->get_parameter("alpha", alpha_param);
   }
   alpha = alpha_param.as_double();
+
   // create kinematic chain
   KDL::Tree robot_tree;
   kdl_parser::treeFromString(robot_description, robot_tree);
@@ -67,23 +69,120 @@ bool DynamicsInterfaceKDL::initialize(
       end_effector_name.c_str());
     return false;
   }
+
   // create map from link names to their index
   for (size_t i = 0; i < chain_.getNrOfSegments(); ++i)
   {
     link_name_map_[chain_.getSegment(i).getName()] = i + 1;
   }
+
   // allocate dynamics memory
   num_joints_ = chain_.getNrOfJoints();
   q_ = KDL::JntArray(num_joints_);
+  q_dot_ = KDL::JntArray(num_joints_);
+  q_array_vel_ = KDL::JntArrayVel(num_joints_);  // container for for q AND q_dot_
   I = Eigen::MatrixXd(num_joints_, num_joints_);
   I.setIdentity();
+
   // create KDL solvers
   fk_pos_solver_ = std::make_shared<KDL::ChainFkSolverPos_recursive>(chain_);
   jac_solver_ = std::make_shared<KDL::ChainJntToJacSolver>(chain_);
+  jac_dot_solver_ = std::make_shared<KDL::ChainJntToJacDotSolver>(chain_);
   jacobian_ = std::make_shared<KDL::Jacobian>(num_joints_);
+  jacobian_derivative_ = std::make_shared<KDL::Jacobian>(num_joints_);
+  // inertia_ = std::make_shared<KDL::JntSpaceInertiaMatrix>(num_joints_);
 
   return true;
 }
+
+
+// FK, Jacobian, and Jacobian time derivative
+// --------------------------------------------------------------------
+
+bool DynamicsInterfaceKDL::calculate_link_transform(
+  const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_pos, const std::string & link_name,
+  Eigen::Isometry3d & transform)
+{
+  // verify inputs
+  if (!verify_initialized() || !verify_joint_vector(joint_pos) || !verify_link_name(link_name))
+  {
+    return false;
+  }
+
+  // get joint array
+  q_.data = joint_pos;
+
+  // reset transform_vec
+  transform.setIdentity();
+
+  // special case: since the root is not in the robot tree, need to return identity transform
+  if (link_name == root_name_)
+  {
+    return true;
+  }
+
+  // create forward kinematics solver
+  fk_pos_solver_->JntToCart(q_, frame_, link_name_map_[link_name]);
+  tf2::transformKDLToEigen(frame_, transform);
+  return true;
+}
+
+bool DynamicsInterfaceKDL::calculate_jacobian(
+  const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_pos, const std::string & link_name,
+  Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian)
+{
+  // verify inputs
+  if (
+    !verify_initialized() || !verify_joint_vector(joint_pos) || !verify_link_name(link_name) ||
+    !verify_jacobian(jacobian))
+  {
+    return false;
+  }
+
+  // get joint array
+  q_.data = joint_pos;
+
+  // calculate Jacobian
+  jac_solver_->JntToJac(q_, *jacobian_, link_name_map_[link_name]);
+  jacobian = jacobian_->data;
+
+  return true;
+}
+
+bool DynamicsInterfaceKDL::calculate_jacobian_derivative(
+  const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_pos,
+  const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_vel,
+  const std::string & link_name,
+  Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative)
+{
+  // verify inputs
+  if (
+    !verify_initialized() || !verify_joint_vector(joint_pos) || !verify_link_name(link_name) ||
+    !verify_jacobian(jacobian_derivative))
+  {
+    return false;
+  }
+
+  // get joint array
+  q_.data = joint_pos;
+  q_dot_.data = joint_vel;
+
+  q_array_vel_.q = q_;
+  q_array_vel_.qdot = q_dot_;
+
+  // calculate Jacobian
+  jac_dot_solver_->JntToJacDot (q_array_vel_, *jacobian_derivative_, link_name_map_[link_name]);
+  jacobian_derivative = jacobian_derivative_->data;
+
+  return true;
+}
+
+// Dynamics
+// --------------------------------------------------------------------
+
+
+// Kinematics
+// --------------------------------------------------------------------
 
 bool DynamicsInterfaceKDL::convert_joint_deltas_to_cartesian_deltas(
   const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_pos,
@@ -133,56 +232,6 @@ bool DynamicsInterfaceKDL::convert_cartesian_deltas_to_joint_deltas(
     (J.transpose() * J + alpha * I).inverse() * J.transpose();
   delta_theta = J_inverse * delta_x;
 
-  return true;
-}
-
-bool DynamicsInterfaceKDL::calculate_jacobian(
-  const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_pos, const std::string & link_name,
-  Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian)
-{
-  // verify inputs
-  if (
-    !verify_initialized() || !verify_joint_vector(joint_pos) || !verify_link_name(link_name) ||
-    !verify_jacobian(jacobian))
-  {
-    return false;
-  }
-
-  // get joint array
-  q_.data = joint_pos;
-
-  // calculate Jacobian
-  jac_solver_->JntToJac(q_, *jacobian_, link_name_map_[link_name]);
-  jacobian = jacobian_->data;
-
-  return true;
-}
-
-bool DynamicsInterfaceKDL::calculate_link_transform(
-  const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_pos, const std::string & link_name,
-  Eigen::Isometry3d & transform)
-{
-  // verify inputs
-  if (!verify_initialized() || !verify_joint_vector(joint_pos) || !verify_link_name(link_name))
-  {
-    return false;
-  }
-
-  // get joint array
-  q_.data = joint_pos;
-
-  // reset transform_vec
-  transform.setIdentity();
-
-  // special case: since the root is not in the robot tree, need to return identity transform
-  if (link_name == root_name_)
-  {
-    return true;
-  }
-
-  // create forward kinematics solver
-  fk_pos_solver_->JntToCart(q_, frame_, link_name_map_[link_name]);
-  tf2::transformKDLToEigen(frame_, transform);
   return true;
 }
 
