@@ -5,6 +5,7 @@ This package is based on the [ros-controls/kinematics_interface](https://github.
 - compute the joint inertia matrix $H(q)$ using `calculate_inertia`;
 - compute the Coriolis matrix $C(q, \dot{q})$ using `calculate_coriolis`;
 - compute the gravity terms $G(q)$ using `calculate_gravity`;
+- compute the time derivative of the Jacobian matrix $\dot{J}(q, \dot{q}) = \cfrac{d}{dt}J(q)$ using `calculate_derivative_jacobian`.
 
 Given a robot with $n$ joints, the following notations are considered :
 
