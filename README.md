@@ -9,7 +9,7 @@ Given a robot with $n$ joints, the following notations are considered :
 
 $$
 \begin{align}
-  H \ddot{q} + C(q, \dot{q}) \dot{q} + G(q) = \tau_c + J(q)^T f_{ext}
+  H(q) \ddot{q} + C(q, \dot{q}) \dot{q} + G(q) = \tau_c + J(q)^T f_{ext}
 \end{align}
 $$
 
