@@ -35,9 +35,8 @@ public:
     rclcpp::init(0, nullptr);
     node_ = std::make_shared<rclcpp_lifecycle::LifecycleNode>("test_node");
     std::string plugin_name = "dynamics_interface_kdl/DynamicsInterfaceKDL";
-    dyn_loader_ =
-      std::make_shared<pluginlib::ClassLoader<dynamics_interface::DynamicsInterface>>(
-        "dynamics_interface", "dynamics_interface::DynamicsInterface");
+    dyn_loader_ = std::make_shared<pluginlib::ClassLoader<dynamics_interface::DynamicsInterface>>(
+      "dynamics_interface", "dynamics_interface::DynamicsInterface");
     dyn_ = std::unique_ptr<dynamics_interface::DynamicsInterface>(
       dyn_loader_->createUnmanagedInstance(plugin_name));
   }

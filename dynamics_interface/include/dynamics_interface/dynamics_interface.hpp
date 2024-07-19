@@ -76,8 +76,7 @@ public:
    * \return true if successful
    */
   virtual bool calculate_jacobian_derivative(
-    const Eigen::VectorXd & joint_pos,
-    const Eigen::VectorXd & joint_vel,
+    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & joint_vel,
     const std::string & link_name,
     Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative) = 0;
 
@@ -99,8 +98,7 @@ public:
    * \return true if successful
    */
   virtual bool calculate_coriolis(
-    const Eigen::VectorXd & joint_pos,
-    const Eigen::VectorXd & joint_vel,
+    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & joint_vel,
     Eigen::VectorXd & coriolis) = 0;
 
   /**
@@ -109,9 +107,7 @@ public:
    * \param[out] gravity gravity
    * \return true if successful
    */
-  virtual bool calculate_gravity(
-    const Eigen::VectorXd & joint_pos,
-    Eigen::VectorXd & gravity) = 0;
+  virtual bool calculate_gravity(const Eigen::VectorXd & joint_pos, Eigen::VectorXd & gravity) = 0;
 
   /**
    * \brief Convert Cartesian delta-x to joint delta-theta, using the Jacobian.

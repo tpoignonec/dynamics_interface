@@ -24,16 +24,16 @@
 #include <unordered_map>
 #include <vector>
 
+#include "dynamics_interface/dynamics_interface.hpp"
 #include "eigen3/Eigen/Core"
 #include "eigen3/Eigen/LU"
 #include "kdl/chaindynparam.hpp"
 #include "kdl/chainfksolverpos_recursive.hpp"
 #include "kdl/chainfksolvervel_recursive.hpp"
+#include "kdl/chainjnttojacdotsolver.hpp"
 #include "kdl/chainjnttojacsolver.hpp"
 #include "kdl/treejnttojacsolver.hpp"
-#include "kdl/chainjnttojacdotsolver.hpp"
 #include "kdl_parser/kdl_parser.hpp"
-#include "dynamics_interface/dynamics_interface.hpp"
 #include "rclcpp/node_interfaces/node_parameters_interface.hpp"
 #include "tf2_eigen_kdl/tf2_eigen_kdl.hpp"
 
@@ -55,8 +55,7 @@ public:
     Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian) override;
 
   bool calculate_jacobian_derivative(
-    const Eigen::VectorXd & joint_pos,
-    const Eigen::VectorXd & joint_vel,
+    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & joint_vel,
     const std::string & link_name,
     Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative) override;
 
@@ -65,13 +64,10 @@ public:
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia) override;
 
   bool calculate_coriolis(
-    const Eigen::VectorXd & joint_pos,
-    const Eigen::VectorXd & joint_vel,
+    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & joint_vel,
     Eigen::VectorXd & coriolis) override;
 
-  bool calculate_gravity(
-    const Eigen::VectorXd & joint_pos,
-    Eigen::VectorXd & gravity) override;
+  bool calculate_gravity(const Eigen::VectorXd & joint_pos, Eigen::VectorXd & gravity) override;
 
   bool convert_cartesian_deltas_to_joint_deltas(
     const Eigen::VectorXd & joint_pos, const Eigen::Matrix<double, 6, 1> & delta_x,

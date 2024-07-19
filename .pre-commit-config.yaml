@@ -1,7 +1,9 @@
-
 # To use:
-#
+#     pip install pre-commit
 #     pre-commit run -a
+#
+#     (to run on all files)
+#     pre-commit run --all-files
 #
 # Or:
 #
@@ -16,7 +18,7 @@
 repos:
   # Standard hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v4.4.0
     hooks:
       - id: check-added-large-files
       - id: check-ast
@@ -26,6 +28,7 @@ repos:
       - id: check-symlinks
       - id: check-xml
       - id: check-yaml
+        args: [--allow-multiple-documents, --unsafe] # to fix "could not determine a constructor for the tag '!degrees'"
       - id: debug-statements
       - id: end-of-file-fixer
       - id: mixed-line-ending
@@ -33,10 +36,9 @@ repos:
         exclude_types: [rst]
       - id: fix-byte-order-marker
 
-
   # Python hooks
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.16.0
+    rev: v3.3.1
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]
@@ -48,39 +50,52 @@ repos:
     - id: pydocstyle
       args: ["--ignore=D100,D101,D102,D103,D104,D105,D106,D107,D203,D212,D404"]
 
-  - repo: https://github.com/psf/black
-    rev: 24.4.2
-    hooks:
-      - id: black
-        args: ["--line-length=99"]
-
   - repo: https://github.com/pycqa/flake8
-    rev: 7.1.0
+    rev: 6.0.0
     hooks:
     - id: flake8
       args: ["--extend-ignore=E501"]
 
-  # CPP hooks
-  - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v18.1.8
-    hooks:
-      - id: clang-format
-        args: ['-fallback-style=none', '-i']
-
+  # Uncrustify
   - repo: local
     hooks:
-      - id: ament_cppcheck
-        name: ament_cppcheck
-        description: Static code analysis of C/C++ files.
-        entry: env AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS=1 ament_cppcheck
+      - id: ament_uncrustify
+        name: ament_uncrustify
+        description: Uncrustify.
+        stages: [commit]
+        entry: ament_uncrustify
         language: system
         files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
+        args: ["--reformat"]
 
+  # CPP hooks
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: clang-format
+        description: Format files with ClangFormat.
+        entry: clang-format-14
+        language: system
+        files: \.(c|cc|cxx|cpp|frag|glsl|h|hpp|hxx|ih|ispc|ipp|java|js|m|proto|vert)$
+        args: ['-fallback-style=none', '-i']
+
+  # - repo: local
+  #   hooks:
+  #     - id: ament_cppcheck
+  #       name: ament_cppcheck
+  #       description: Static code analysis of C/C++ files.
+  #       stages: [commit]
+  #       entry: ament_cppcheck
+  #       language: system
+  #       files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
+
+  # Maybe use https://github.com/cpplint/cpplint instead
   - repo: local
     hooks:
       - id: ament_cpplint
         name: ament_cpplint
         description: Static code analysis of C/C++ files.
+        stages: [commit]
         entry: ament_cpplint
         language: system
         files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
@@ -92,6 +107,7 @@ repos:
       - id: ament_lint_cmake
         name: ament_lint_cmake
         description: Check format of CMakeLists.txt files.
+        stages: [commit]
         entry: ament_lint_cmake
         language: system
         files: CMakeLists\.txt$
@@ -102,6 +118,7 @@ repos:
       - id: ament_copyright
         name: ament_copyright
         description: Check if copyright notice is available in all files.
+        stages: [commit]
         entry: ament_copyright
         language: system
 
@@ -124,18 +141,8 @@ repos:
   # Spellcheck in comments and docs
   # skipping of *.svg files is not working...
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
+    rev: v2.2.2
     hooks:
       - id: codespell
         args: ['--write-changes']
         exclude: CHANGELOG\.rst|\.(svg|pyc)$
-
-  - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.28.6
-    hooks:
-      - id: check-github-workflows
-        args: ["--verbose"]
-      - id: check-github-actions
-        args: ["--verbose"]
-      - id: check-dependabot
-        args: ["--verbose"]

@@ -67,8 +67,9 @@ bool DynamicsInterfaceKDL::initialize(
   if (parameters_interface->has_parameter("gravity"))
   {
     parameters_interface->get_parameter("gravity", gravity_param);
-    std::vector< double > gravity_vec = gravity_param.as_double_array();
-    if (gravity_vec.size() != 3) {
+    std::vector<double> gravity_vec = gravity_param.as_double_array();
+    if (gravity_vec.size() != 3)
+    {
       RCLCPP_ERROR(
         LOGGER, "The size of the gravity vector (%zu) does not match the required size of 3",
         gravity_vec.size());
@@ -80,9 +81,7 @@ bool DynamicsInterfaceKDL::initialize(
   }
   else
   {
-    RCLCPP_ERROR(
-        LOGGER, "Please specify a gravity vector in base frame '%s'.",
-        root_name_.c_str());
+    RCLCPP_ERROR(LOGGER, "Please specify a gravity vector in base frame '%s'.", root_name_.c_str());
     return false;
     /*
     // default gravity vector
@@ -130,7 +129,6 @@ bool DynamicsInterfaceKDL::initialize(
 
   return true;
 }
-
 
 // FK, Jacobian, and Jacobian time derivative
 // --------------------------------------------------------------------
@@ -187,14 +185,12 @@ bool DynamicsInterfaceKDL::calculate_jacobian(
 
 bool DynamicsInterfaceKDL::calculate_jacobian_derivative(
   const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_pos,
-  const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_vel,
-  const std::string & link_name,
+  const Eigen::Matrix<double, Eigen::Dynamic, 1> & joint_vel, const std::string & link_name,
   Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative)
 {
   // verify inputs
   if (
-    !verify_initialized() ||
-    !verify_joint_vector(joint_pos) || !verify_joint_vector(joint_vel) ||
+    !verify_initialized() || !verify_joint_vector(joint_pos) || !verify_joint_vector(joint_vel) ||
     !verify_link_name(link_name) || !verify_jacobian(jacobian_derivative))
   {
     return false;
@@ -208,7 +204,7 @@ bool DynamicsInterfaceKDL::calculate_jacobian_derivative(
   q_array_vel_.qdot = q_dot_;
 
   // calculate Jacobian
-  jac_dot_solver_->JntToJacDot (q_array_vel_, *jacobian_derivative_, link_name_map_[link_name]);
+  jac_dot_solver_->JntToJacDot(q_array_vel_, *jacobian_derivative_, link_name_map_[link_name]);
   jacobian_derivative = jacobian_derivative_->data;
 
   return true;
@@ -216,7 +212,6 @@ bool DynamicsInterfaceKDL::calculate_jacobian_derivative(
 
 // Dynamics
 // --------------------------------------------------------------------
-
 
 bool DynamicsInterfaceKDL::calculate_inertia(
   const Eigen::VectorXd & joint_pos,
@@ -233,14 +228,11 @@ bool DynamicsInterfaceKDL::calculate_inertia(
 }
 
 bool DynamicsInterfaceKDL::calculate_coriolis(
-  const Eigen::VectorXd & joint_pos,
-  const Eigen::VectorXd & joint_vel,
-  Eigen::VectorXd & coriolis)
+  const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & joint_vel, Eigen::VectorXd & coriolis)
 {
   // verify inputs
   if (
-    !verify_initialized() ||
-    !verify_joint_vector(joint_pos) || !verify_joint_vector(joint_vel) ||
+    !verify_initialized() || !verify_joint_vector(joint_pos) || !verify_joint_vector(joint_vel) ||
     !verify_coriolis(coriolis))
   {
     return false;
@@ -251,8 +243,7 @@ bool DynamicsInterfaceKDL::calculate_coriolis(
 }
 
 bool DynamicsInterfaceKDL::calculate_gravity(
-  const Eigen::VectorXd & joint_pos,
-  Eigen::VectorXd & gravity)
+  const Eigen::VectorXd & joint_pos, Eigen::VectorXd & gravity)
 {
   // verify inputs
   if (!verify_initialized() || !verify_joint_vector(joint_pos) || !verify_gravity(gravity))
@@ -392,15 +383,15 @@ bool DynamicsInterfaceKDL::verify_inertia(
   if (inertia.rows() != inertia_->rows() || inertia.cols() != inertia_->columns())
   {
     RCLCPP_ERROR(
-      LOGGER, "The size of the inertia matrix (%zu, %zu) does not match the required size of (%u, %u)",
+      LOGGER,
+      "The size of the inertia matrix (%zu, %zu) does not match the required size of (%u, %u)",
       inertia.rows(), inertia.cols(), inertia_->rows(), inertia_->columns());
     return false;
   }
   return true;
 }
 
-bool DynamicsInterfaceKDL::verify_coriolis(
-  const Eigen::VectorXd & coriolis)
+bool DynamicsInterfaceKDL::verify_coriolis(const Eigen::VectorXd & coriolis)
 {
   if (static_cast<size_t>(coriolis.size()) != num_joints_)
   {
@@ -412,8 +403,7 @@ bool DynamicsInterfaceKDL::verify_coriolis(
   return true;
 }
 
-bool DynamicsInterfaceKDL::verify_gravity(
-  const Eigen::VectorXd & gravity)
+bool DynamicsInterfaceKDL::verify_gravity(const Eigen::VectorXd & gravity)
 {
   if (static_cast<size_t>(gravity.size()) != num_joints_)
   {
