@@ -85,26 +85,25 @@ TEST_F(TestKDLPlugin, KDL_plugin_function)
   ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
 
   // dummy joint position and velocity
-  const int num_joints = 2;
-  Eigen::Matrix<double, Eigen::Dynamic, 1> pos = Eigen::Matrix<double, num_joints, 1>::Zero();
-  Eigen::Matrix<double, Eigen::Dynamic, 1> vel = Eigen::Matrix<double, num_joints, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> pos = Eigen::Matrix<double, 2, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> vel = Eigen::Matrix<double, 2, 1>::Zero();
 
   // calculate end effector transform
   Eigen::Isometry3d end_effector_transform;
   ASSERT_TRUE(dyn_->calculate_link_transform(pos, end_effector_, end_effector_transform));
 
   // calculate jacobian and its derivative
-  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian = Eigen::Matrix<double, 6, num_joints>::Zero();
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian = Eigen::Matrix<double, 6, 2>::Zero();
   ASSERT_TRUE(dyn_->calculate_jacobian(pos, end_effector_, jacobian));
 
-  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian_dot = Eigen::Matrix<double, 6, num_joints>::Zero();
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian_dot = Eigen::Matrix<double, 6, 2>::Zero();
   ASSERT_TRUE(dyn_->calculate_jacobian_derivative(pos, vel, end_effector_, jacobian_dot));
 
   // calculate inertia, coriolis and gravity matrices
   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> inertia =
-    Eigen::Matrix<double, num_joints, num_joints>::Zero();
-  Eigen::Matrix<double, Eigen::Dynamic, 1> coriolis = Eigen::Matrix<double, num_joints, 1>::Zero();;
-  Eigen::Matrix<double, Eigen::Dynamic, 1> gravity = Eigen::Matrix<double, num_joints, 1>::Zero();;
+    Eigen::Matrix<double, 2, 2>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> coriolis = Eigen::Matrix<double, 2, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> gravity = Eigen::Matrix<double, 2, 1>::Zero();
 
   ASSERT_TRUE(dyn_->calculate_inertia(pos, inertia));
   ASSERT_TRUE(dyn_->calculate_coriolis(pos, vel, coriolis));
