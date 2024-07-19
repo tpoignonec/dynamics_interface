@@ -126,7 +126,7 @@ bool DynamicsInterfaceKDL::initialize(
   // pre-allocation of memory
   jacobian_ = std::make_shared<KDL::Jacobian>(num_joints_);
   jacobian_derivative_ = std::make_shared<KDL::Jacobian>(num_joints_);
-  // inertia_ = std::make_shared<KDL::JntSpaceInertiaMatrix>(num_joints_);
+  inertia_ = std::make_shared<KDL::JntSpaceInertiaMatrix>(num_joints_);
 
   return true;
 }
@@ -235,7 +235,7 @@ bool DynamicsInterfaceKDL::calculate_inertia(
 bool DynamicsInterfaceKDL::calculate_coriolis(
   const Eigen::VectorXd & joint_pos,
   const Eigen::VectorXd & joint_vel,
-  Eigen::Matrix<double, Eigen::Dynamic, 1> & coriolis)
+  Eigen::VectorXd & coriolis)
 {
   // verify inputs
   if (
@@ -252,7 +252,7 @@ bool DynamicsInterfaceKDL::calculate_coriolis(
 
 bool DynamicsInterfaceKDL::calculate_gravity(
   const Eigen::VectorXd & joint_pos,
-  Eigen::Matrix<double, Eigen::Dynamic, 1> & gravity)
+  Eigen::VectorXd & gravity)
 {
   // verify inputs
   if (!verify_initialized() || !verify_joint_vector(joint_pos) || !verify_gravity(gravity))
