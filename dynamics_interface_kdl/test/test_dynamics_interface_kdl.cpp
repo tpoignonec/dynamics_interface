@@ -71,14 +71,19 @@ public:
     node_->declare_parameter("gravity", gravity);
     node_->set_parameter(param_gravity);
   }
+
+  void loadAllParameters()
+  {
+    loadURDFParameter();
+    loadAlphaParameter();
+    loadGravityParameter();
+  }
 };
 
 TEST_F(TestKDLPlugin, KDL_plugin_function)
 {
   // load robot description and alpha to parameter server
-  loadURDFParameter();
-  loadAlphaParameter();
-  loadGravityParameter();
+  loadAllParameters();
 
   // initialize the  plugin
   ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
@@ -130,8 +135,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_function)
 TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
 {
   // load robot description and alpha to parameter server
-  loadURDFParameter();
-  loadAlphaParameter();
+  loadAllParameters();
 
   // initialize the  plugin
   ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
@@ -163,8 +167,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
 TEST_F(TestKDLPlugin, incorrect_input_sizes)
 {
   // load robot description and alpha to parameter server
-  loadURDFParameter();
-  loadAlphaParameter();
+  loadAllParameters();
 
   // initialize the  plugin
   ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
@@ -203,6 +206,15 @@ TEST_F(TestKDLPlugin, incorrect_input_sizes)
 TEST_F(TestKDLPlugin, KDL_plugin_no_robot_description)
 {
   // load alpha to parameter server
+  loadAlphaParameter();
+  loadGravityParameter();
+  ASSERT_FALSE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+}
+
+TEST_F(TestKDLPlugin, KDL_plugin_no_gravity)
+{
+  // load alpha to parameter server
+  loadURDFParameter();
   loadAlphaParameter();
   ASSERT_FALSE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
 }
