@@ -12,6 +12,7 @@
 
   <depend>eigen</depend>
   <depend>rclcpp_lifecycle</depend>
+  <depend>kinematics_interface</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -26,59 +26,18 @@
 #include "eigen3/Eigen/Core"
 #include "eigen3/Eigen/Geometry"
 #include "eigen3/Eigen/LU"
+#include "kinematics_interface/kinematics_interface.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/node_interfaces/node_parameters_interface.hpp"
 
 namespace dynamics_interface
 {
-class DynamicsInterface
+class DynamicsInterface : public kinematics_interface::KinematicsInterface
 {
 public:
   DynamicsInterface() = default;
 
   virtual ~DynamicsInterface() = default;
-
-  /**
-   * \brief Initialize plugin. This method must be called before any other.
-   */
-  virtual bool initialize(
-    std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface,
-    const std::string & end_effector_name) = 0;
-
-  /**
-   * \brief Calculates the joint transform for a specified link using provided joint positions.
-   * \param[in] joint_pos joint positions of the robot in radians
-   * \param[in] link_name the name of the link to find the transform for
-   * \param[out] transform transformation matrix of the specified link
-   * \return true if successful
-   */
-  virtual bool calculate_link_transform(
-    const Eigen::VectorXd & joint_pos, const std::string & link_name,
-    Eigen::Isometry3d & transform) = 0;
-
-  /**
-   * \brief Calculates the jacobian for a specified link using provided joint positions.
-   * \param[in] joint_pos joint positions of the robot in radians
-   * \param[in] link_name the name of the link to find the transform for
-   * \param[out] jacobian Jacobian matrix of the specified link in column major format.
-   * \return true if successful
-   */
-  virtual bool calculate_jacobian(
-    const Eigen::VectorXd & joint_pos, const std::string & link_name,
-    Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian) = 0;
-
-  /**
-   * \brief Calculates the time derivative of the jacobian for a specified link using provided joint positions.
-   * \param[in] joint_pos joint positions of the robot in radians
-   * \param[in] joint_vel joint velocities of the robot in radians per second
-   * \param[in] link_name the name of the link to find the transform for
-   * \param[out] jacobian_derivative Jacobian matrix of the specified link in column major format.
-   * \return true if successful
-   */
-  virtual bool calculate_jacobian_derivative(
-    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & joint_vel,
-    const std::string & link_name,
-    Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative) = 0;
 
   /**
    * \brief Calculates the joint inertia matrix H.
@@ -110,40 +69,19 @@ public:
   virtual bool calculate_gravity(const Eigen::VectorXd & joint_pos, Eigen::VectorXd & gravity) = 0;
 
   /**
-   * \brief Convert Cartesian delta-x to joint delta-theta, using the Jacobian.
+   * \brief Calculates the time derivative of the jacobian for a specified link using provided joint positions.
    * \param[in] joint_pos joint positions of the robot in radians
-   * \param[in] delta_x input Cartesian deltas (x, y, z, wx, wy, wz)
-   * \param[in] link_name the link name at which delta_x is applied
-   * \param[out] delta_theta outputs joint deltas
+   * \param[in] joint_vel joint velocities of the robot in radians per second
+   * \param[in] link_name the name of the link to find the transform for
+   * \param[out] jacobian_derivative Jacobian matrix of the specified link in column major format.
    * \return true if successful
    */
-  virtual bool convert_cartesian_deltas_to_joint_deltas(
-    const Eigen::VectorXd & joint_pos, const Eigen::Matrix<double, 6, 1> & delta_x,
-    const std::string & link_name, Eigen::VectorXd & delta_theta) = 0;
+  virtual bool calculate_jacobian_derivative(
+    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & joint_vel,
+    const std::string & link_name,
+    Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative) = 0;
 
-  /**
-   * \brief Convert joint delta-theta to Cartesian delta-x.
-   * \param joint_pos joint positions of the robot in radians
-   * \param[in] delta_theta joint deltas
-   * \param[in] link_name the link name at which delta_x is calculated
-   * \param[out] delta_x  Cartesian deltas (x, y, z, wx, wy, wz)
-   * \return true if successful
-   */
-  virtual bool convert_joint_deltas_to_cartesian_deltas(
-    const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & delta_theta,
-    const std::string & link_name, Eigen::Matrix<double, 6, 1> & delta_x) = 0;
-
-  bool calculate_link_transform(
-    const std::vector<double> & joint_pos_vec, const std::string & link_name,
-    Eigen::Isometry3d & transform);
-
-  bool calculate_jacobian(
-    const std::vector<double> & joint_pos_vec, const std::string & link_name,
-    Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian);
-
-  bool calculate_jacobian_derivative(
-    const std::vector<double> & joint_pos_vec, const std::vector<double> & joint_vel_vec,
-    const std::string & link_name, Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative);
+  // non-virtual std::vector version of the interfaces
 
   bool calculate_inertia(
     const std::vector<double> & joint_pos_vec,
@@ -155,13 +93,9 @@ public:
 
   bool calculate_gravity(const std::vector<double> & joint_pos_vec, Eigen::VectorXd & gravity);
 
-  bool convert_cartesian_deltas_to_joint_deltas(
-    std::vector<double> & joint_pos_vec, const std::vector<double> & delta_x_vec,
-    const std::string & link_name, std::vector<double> & delta_theta_vec);
-
-  bool convert_joint_deltas_to_cartesian_deltas(
-    const std::vector<double> & joint_pos_vec, const std::vector<double> & delta_theta_vec,
-    const std::string & link_name, std::vector<double> & delta_x_vec);
+  bool calculate_jacobian_derivative(
+    const std::vector<double> & joint_pos_vec, const std::vector<double> & joint_vel_vec,
+    const std::string & link_name, Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative);
 };
 
 }  // namespace dynamics_interface
