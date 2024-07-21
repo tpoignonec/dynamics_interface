@@ -37,7 +37,7 @@ target_link_libraries(dynamics_interface_kdl PUBLIC
 )
 
 pluginlib_export_plugin_description_file(dynamics_interface dynamics_interface_kdl.xml)
-pluginlib_export_plugin_description_file(dynamics_interface kinematics_dynamics_interface_kdl.xml)
+pluginlib_export_plugin_description_file(kinematics_interface kinematics_dynamics_interface_kdl.xml)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gmock REQUIRED)
