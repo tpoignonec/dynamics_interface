@@ -436,3 +436,5 @@ bool DynamicsInterfaceKDL::verify_gravity(const Eigen::VectorXd & gravity)
 
 PLUGINLIB_EXPORT_CLASS(
   dynamics_interface_kdl::DynamicsInterfaceKDL, dynamics_interface::DynamicsInterface)
+PLUGINLIB_EXPORT_CLASS(
+  dynamics_interface_kdl::DynamicsInterfaceKDL, kinematics_interface::KinematicsInterface)

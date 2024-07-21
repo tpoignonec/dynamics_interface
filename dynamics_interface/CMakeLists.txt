@@ -8,6 +8,7 @@ endif()
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   rclcpp
   rclcpp_lifecycle
+  kinematics_interface
 )
 
 # find dependencies
