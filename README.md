@@ -25,6 +25,18 @@ Note that this sign convention consider the external wrench performing work on t
 
 The package [dynamics_interface_kdl](dynamics_interface_kdl/src/dynamics_interface_kdl.cpp) is a specialization of the [kinematics_interface_kdl](https://github.com/ros-controls/kinematics_interface) package on which it is based.
 
+Typical `.yaml` configuration:
+
+```yaml
+dynamics_interface_fd:
+  plugin_name: dynamics_interface_kdl/DynamicsInterfaceKdl
+  plugin_package: dynamics_interface
+  base: base_frame
+  tip: tool_frame
+  alpha: 0.0005
+  gravity: [0., 0., -9.81]  # in base frame
+```
+
 ### Custom interface for force dimension haptic interfaces
 
 The package [dynamics_interface_fd](dynamics_interface_fd/src/dynamics_interface_fd.cpp) is intended to be used in conjunction with the stack [ICube-Robotics/forcedimension_ros2](https://github.com/ICube-Robotics/forcedimension_ros2).
@@ -40,8 +52,8 @@ dynamics_interface_fd:
   plugin_package: dynamics_interface
   base: fd_base
   tip: fd_ee
-  fd_inertia_topic_name: fd_inertia
   alpha: 0.0005
+  fd_inertia_topic_name: fd_inertia
 ```
 
 __TODO:__
