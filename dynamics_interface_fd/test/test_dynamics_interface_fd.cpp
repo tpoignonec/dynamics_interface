@@ -21,8 +21,14 @@
 #include "pluginlib/class_loader.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "ros2_control_test_assets/descriptions.hpp"
+#include "std_msgs/msg/float64_multi_array.hpp"
 
-class TestKDLPlugin : public ::testing::Test
+#include "test_asset_omega6_description.hpp"
+
+const size_t num_joints_omega6 = 6;
+const size_t num_joints_omega3 = 3;
+
+class TestDynamicsFdPlugin : public ::testing::Test
 {
 public:
   std::shared_ptr<pluginlib::ClassLoader<dynamics_interface::DynamicsInterface>> dyn_loader_;
@@ -32,7 +38,13 @@ public:
   std::shared_ptr<kinematics_interface::KinematicsInterface> kyn_;
 
   std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
-  std::string end_effector_ = "link2";
+  std::string end_effector_ = "fd_ee";
+
+  const std::string robot_description_omega6 = ros2_control_test_assets::valid_omega6_urdf;
+  const std::string robot_description_omega3 = ros2_control_test_assets::valid_omega3_urdf;
+
+  std::string fd_inertia_topic_name = "/fd_inertia";
+  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr mock_fd_inertia_publisher_;
 
   void SetUp()
   {
@@ -53,6 +65,39 @@ public:
         "kinematics_interface", "kinematics_interface::KinematicsInterface");
     kyn_ = std::unique_ptr<kinematics_interface::KinematicsInterface>(
       kyn_loader_->createUnmanagedInstance(plugin_name));
+
+    // setup mock publisher
+    mock_fd_inertia_publisher_ = node_->create_publisher<std_msgs::msg::Float64MultiArray>(
+      fd_inertia_topic_name, rclcpp::SystemDefaultsQoS());
+  }
+
+  void publishInertia(Eigen::Matrix<double, 6, 6> inertia)
+  {
+    // wait for subscriber
+    size_t wait_count = 0;
+    while (node_->count_subscribers(fd_inertia_topic_name) == 0)
+    {
+      if (wait_count >= 5)
+      {
+        auto error_msg =
+          std::string("publishing to ") + fd_inertia_topic_name + " but no node subscribes to it";
+        throw std::runtime_error(error_msg);
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      ++wait_count;
+    }
+
+    // publish
+    std_msgs::msg::Float64MultiArray msg;
+    msg.data.resize(36);
+    for (size_t i = 0; i < 6; i++)
+    {
+      for (size_t j = 0; j < 6; j++)
+      {
+        msg.data[i * 6 + j] = inertia(i, j);
+      }
+    }
+    mock_fd_inertia_publisher_->publish(msg);
   }
 
   void TearDown()
@@ -61,12 +106,9 @@ public:
     rclcpp::shutdown();
   }
 
-  void loadURDFParameter()
+  void loadURDFParameter(const std::string & robot_description)
   {
-    auto urdf = std::string(ros2_control_test_assets::urdf_head) +
-                std::string(ros2_control_test_assets::urdf_tail);
-
-    rclcpp::Parameter param_urdf("robot_description", urdf);
+    rclcpp::Parameter param_urdf("robot_description", robot_description);
     node_->declare_parameter("robot_description", "");
     node_->set_parameter(param_urdf);
   }
@@ -88,49 +130,148 @@ public:
 
   void loadAllParameters()
   {
-    loadURDFParameter();
+    loadURDFParameter(robot_description_omega6);
     loadAlphaParameter();
     loadGravityParameter();
   }
 };
 
-TEST_F(TestKDLPlugin, KDL_plugin_function)
+TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega6_urdf)
 {
+  RCLCPP_INFO(node_->get_logger(), "Testing omega6 URDF...");
+
   // load robot description and alpha to parameter server
   loadAllParameters();
 
   // initialize the  plugin
   ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
+
+  // publish inertia matrix
+  Eigen::Matrix<double, 6, 6> mock_inertia = 2 * Eigen::Matrix<double, 6, 6>::Identity();
+  publishInertia(mock_inertia);
 
   // dummy joint position and velocity
-  Eigen::Matrix<double, Eigen::Dynamic, 1> pos = Eigen::Matrix<double, 2, 1>::Zero();
-  Eigen::Matrix<double, Eigen::Dynamic, 1> vel = Eigen::Matrix<double, 2, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> pos =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> vel =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
 
   // calculate end effector transform
   Eigen::Isometry3d end_effector_transform;
   ASSERT_TRUE(dyn_->calculate_link_transform(pos, end_effector_, end_effector_transform));
 
   // calculate jacobian and its derivative
-  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian = Eigen::Matrix<double, 6, 2>::Zero();
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian =
+    Eigen::Matrix<double, 6, num_joints_omega6>::Zero();
   ASSERT_TRUE(dyn_->calculate_jacobian(pos, end_effector_, jacobian));
 
-  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian_dot = Eigen::Matrix<double, 6, 2>::Zero();
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian_dot =
+    Eigen::Matrix<double, 6, num_joints_omega6>::Zero();
   ASSERT_TRUE(dyn_->calculate_jacobian_derivative(pos, vel, end_effector_, jacobian_dot));
+
+  std::cout << "jacobien: \n" << jacobian << std::endl;
+  std::cout << "jacobien_dot: \n" << jacobian_dot << std::endl;
 
   // calculate inertia, coriolis and gravity matrices
   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> inertia =
-    Eigen::Matrix<double, 2, 2>::Zero();
-  Eigen::Matrix<double, Eigen::Dynamic, 1> coriolis = Eigen::Matrix<double, 2, 1>::Zero();
-  Eigen::Matrix<double, Eigen::Dynamic, 1> gravity = Eigen::Matrix<double, 2, 1>::Zero();
+    Eigen::Matrix<double, num_joints_omega6, num_joints_omega6>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> coriolis =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> gravity =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
 
+  // test inertia
   ASSERT_TRUE(dyn_->calculate_inertia(pos, inertia));
+  ASSERT_TRUE((mock_inertia - inertia).isMuchSmallerThan(0.001));
+  std::cout << "inertia: \n" << inertia << std::endl;
+
+  // test coriolis and gravity getters
   ASSERT_TRUE(dyn_->calculate_coriolis(pos, vel, coriolis));
   ASSERT_TRUE(dyn_->calculate_gravity(pos, gravity));
 
   // convert cartesian delta to joint delta
   Eigen::Matrix<double, 6, 1> delta_x = Eigen::Matrix<double, 6, 1>::Zero();
   delta_x[2] = 1;
-  Eigen::Matrix<double, Eigen::Dynamic, 1> delta_theta = Eigen::Matrix<double, 2, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> delta_theta =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
+  ASSERT_TRUE(
+    dyn_->convert_cartesian_deltas_to_joint_deltas(pos, delta_x, end_effector_, delta_theta));
+
+  // convert joint delta to cartesian delta
+  Eigen::Matrix<double, 6, 1> delta_x_est;
+  ASSERT_TRUE(
+    dyn_->convert_joint_deltas_to_cartesian_deltas(pos, delta_theta, end_effector_, delta_x_est));
+
+  // Ensure kinematics math is correct
+  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i)
+  {
+    ASSERT_NEAR(delta_x[i], delta_x_est[i], 0.02);
+  }
+  RCLCPP_INFO(node_->get_logger(), "All good so far...");
+}
+
+TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega3_urdf)
+{
+  RCLCPP_INFO(node_->get_logger(), "Testing omega3 URDF...");
+
+  // load robot description and alpha to parameter server
+  loadURDFParameter(robot_description_omega3);
+  loadAlphaParameter();
+  loadGravityParameter();
+
+  // initialize the  plugin
+  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
+
+  // publish inertia matrix
+  Eigen::Matrix<double, 6, 6> mock_inertia = 2 * Eigen::Matrix<double, 6, 6>::Identity();
+  publishInertia(mock_inertia);
+
+  // dummy joint position and velocity
+  Eigen::Matrix<double, Eigen::Dynamic, 1> pos =
+    Eigen::Matrix<double, num_joints_omega3, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> vel =
+    Eigen::Matrix<double, num_joints_omega3, 1>::Zero();
+
+  // calculate end effector transform
+  Eigen::Isometry3d end_effector_transform;
+  ASSERT_TRUE(dyn_->calculate_link_transform(pos, end_effector_, end_effector_transform));
+
+  // calculate jacobian and its derivative
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian =
+    Eigen::Matrix<double, 6, num_joints_omega3>::Zero();
+  ASSERT_TRUE(dyn_->calculate_jacobian(pos, end_effector_, jacobian));
+
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian_dot =
+    Eigen::Matrix<double, 6, num_joints_omega3>::Zero();
+  ASSERT_TRUE(dyn_->calculate_jacobian_derivative(pos, vel, end_effector_, jacobian_dot));
+
+  std::cout << "jacobien: \n" << jacobian << std::endl;
+  std::cout << "jacobien_dot: \n" << jacobian_dot << std::endl;
+
+  // calculate inertia, coriolis and gravity matrices
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> inertia =
+    Eigen::Matrix<double, num_joints_omega3, num_joints_omega3>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> coriolis =
+    Eigen::Matrix<double, num_joints_omega3, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> gravity =
+    Eigen::Matrix<double, num_joints_omega3, 1>::Zero();
+
+  // test inertia
+  ASSERT_TRUE(dyn_->calculate_inertia(pos, inertia));
+  ASSERT_TRUE((mock_inertia.block<3, 3>(0, 0) - inertia).isMuchSmallerThan(0.001));
+  std::cout << "inertia: \n" << inertia << std::endl;
+
+  // test coriolis and gravity getters
+  ASSERT_TRUE(dyn_->calculate_coriolis(pos, vel, coriolis));
+  ASSERT_TRUE(dyn_->calculate_gravity(pos, gravity));
+
+  // convert cartesian delta to joint delta
+  Eigen::Matrix<double, 6, 1> delta_x = Eigen::Matrix<double, 6, 1>::Zero();
+  delta_x[2] = 1;
+  Eigen::Matrix<double, Eigen::Dynamic, 1> delta_theta =
+    Eigen::Matrix<double, num_joints_omega3, 1>::Zero();
   ASSERT_TRUE(
     dyn_->convert_cartesian_deltas_to_joint_deltas(pos, delta_x, end_effector_, delta_theta));
 
@@ -146,7 +287,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_function)
   }
 }
 
-TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
+TEST_F(TestDynamicsFdPlugin, FD_plugin_function_std_vector)
 {
   // load robot description and alpha to parameter server
   loadAllParameters();
@@ -154,24 +295,32 @@ TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
   // initialize the  plugin
   ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
 
+  // publish inertia matrix
+  Eigen::Matrix<double, 6, 6> mock_inertia = 2 * Eigen::Matrix<double, 6, 6>::Identity();
+  publishInertia(mock_inertia);
+
   // calculate end effector transform
-  std::vector<double> pos = {0, 0};
-  std::vector<double> vel = {0, 0};
+  std::vector<double> pos(num_joints_omega6, 0);
+  std::vector<double> vel(num_joints_omega6, 0);
   Eigen::Isometry3d end_effector_transform;
   ASSERT_TRUE(dyn_->calculate_link_transform(pos, end_effector_, end_effector_transform));
 
   // calculate jacobian and its derivative
-  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian = Eigen::Matrix<double, 6, 2>::Zero();
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian =
+    Eigen::Matrix<double, 6, num_joints_omega6>::Zero();
   ASSERT_TRUE(dyn_->calculate_jacobian(pos, end_effector_, jacobian));
 
-  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian_dot = Eigen::Matrix<double, 6, 2>::Zero();
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian_dot =
+    Eigen::Matrix<double, 6, num_joints_omega6>::Zero();
   ASSERT_TRUE(dyn_->calculate_jacobian_derivative(pos, vel, end_effector_, jacobian_dot));
 
   // calculate inertia, coriolis and gravity matrices
   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> inertia =
-    Eigen::Matrix<double, 2, 2>::Zero();
-  Eigen::Matrix<double, Eigen::Dynamic, 1> coriolis = Eigen::Matrix<double, 2, 1>::Zero();
-  Eigen::Matrix<double, Eigen::Dynamic, 1> gravity = Eigen::Matrix<double, 2, 1>::Zero();
+    Eigen::Matrix<double, num_joints_omega6, num_joints_omega6>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> coriolis =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> gravity =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
 
   ASSERT_TRUE(dyn_->calculate_inertia(pos, inertia));
   ASSERT_TRUE(dyn_->calculate_coriolis(pos, vel, coriolis));
@@ -180,7 +329,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
   // convert cartesian delta to joint delta
   std::vector<double> delta_x = {0, 0, 0, 0, 0, 0};
   delta_x[2] = 1;
-  std::vector<double> delta_theta = {0, 0};
+  std::vector<double> delta_theta(num_joints_omega6, 0);
   ASSERT_TRUE(
     dyn_->convert_cartesian_deltas_to_joint_deltas(pos, delta_x, end_effector_, delta_theta));
 
@@ -196,7 +345,28 @@ TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
   }
 }
 
-TEST_F(TestKDLPlugin, incorrect_input_sizes)
+TEST_F(TestDynamicsFdPlugin, no_inertia_published)
+{
+  RCLCPP_INFO(node_->get_logger(), "Testing omega6 URDF...");
+
+  // load robot description and alpha to parameter server
+  loadAllParameters();
+
+  // initialize the  plugin
+  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
+
+  // dummy joint position and velocity
+  Eigen::Matrix<double, Eigen::Dynamic, 1> pos =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
+
+  // calculate inertia
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> inertia =
+    Eigen::Matrix<double, num_joints_omega6, num_joints_omega6>::Zero();
+  ASSERT_FALSE(dyn_->calculate_inertia(pos, inertia));
+}
+
+TEST_F(TestDynamicsFdPlugin, incorrect_input_sizes)
 {
   // load robot description and alpha to parameter server
   loadAllParameters();
@@ -205,11 +375,13 @@ TEST_F(TestKDLPlugin, incorrect_input_sizes)
   ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
 
   // define correct values
-  Eigen::Matrix<double, Eigen::Dynamic, 1> pos = Eigen::Matrix<double, 2, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> pos =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
   Eigen::Isometry3d end_effector_transform;
   Eigen::Matrix<double, 6, 1> delta_x = Eigen::Matrix<double, 6, 1>::Zero();
   delta_x[2] = 1;
-  Eigen::Matrix<double, Eigen::Dynamic, 1> delta_theta = Eigen::Matrix<double, 2, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> delta_theta =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
   Eigen::Matrix<double, 6, 1> delta_x_est;
 
   // wrong size input vector
@@ -235,7 +407,7 @@ TEST_F(TestKDLPlugin, incorrect_input_sizes)
     pos, delta_theta, "link_not_in_model", delta_x_est));
 }
 
-TEST_F(TestKDLPlugin, KDL_plugin_no_robot_description)
+TEST_F(TestDynamicsFdPlugin, FD_plugin_no_robot_description)
 {
   // load alpha to parameter server
   loadAlphaParameter();
@@ -243,15 +415,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_no_robot_description)
   ASSERT_FALSE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
 }
 
-TEST_F(TestKDLPlugin, KDL_plugin_no_gravity)
-{
-  // load alpha to parameter server
-  loadURDFParameter();
-  loadAlphaParameter();
-  ASSERT_FALSE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
-}
-
-TEST_F(TestKDLPlugin, KDL_plugin_as_kinematics_interface_only)
+TEST_F(TestDynamicsFdPlugin, FD_plugin_as_kinematics_interface_only)
 {
   // load robot description and alpha to parameter server
   loadAllParameters();
@@ -260,21 +424,25 @@ TEST_F(TestKDLPlugin, KDL_plugin_as_kinematics_interface_only)
   ASSERT_TRUE(kyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
 
   // dummy joint position and velocity
-  Eigen::Matrix<double, Eigen::Dynamic, 1> pos = Eigen::Matrix<double, 2, 1>::Zero();
-  Eigen::Matrix<double, Eigen::Dynamic, 1> vel = Eigen::Matrix<double, 2, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> pos =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> vel =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
 
   // calculate end effector transform
   Eigen::Isometry3d end_effector_transform;
   ASSERT_TRUE(kyn_->calculate_link_transform(pos, end_effector_, end_effector_transform));
 
   // calculate jacobian
-  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian = Eigen::Matrix<double, 6, 2>::Zero();
+  Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian =
+    Eigen::Matrix<double, 6, num_joints_omega6>::Zero();
   ASSERT_TRUE(kyn_->calculate_jacobian(pos, end_effector_, jacobian));
 
   // convert cartesian delta to joint delta
   Eigen::Matrix<double, 6, 1> delta_x = Eigen::Matrix<double, 6, 1>::Zero();
   delta_x[2] = 1;
-  Eigen::Matrix<double, Eigen::Dynamic, 1> delta_theta = Eigen::Matrix<double, 2, 1>::Zero();
+  Eigen::Matrix<double, Eigen::Dynamic, 1> delta_theta =
+    Eigen::Matrix<double, num_joints_omega6, 1>::Zero();
   ASSERT_TRUE(
     kyn_->convert_cartesian_deltas_to_joint_deltas(pos, delta_x, end_effector_, delta_theta));
 
