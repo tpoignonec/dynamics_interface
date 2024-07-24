@@ -5,7 +5,7 @@ namespace ros2_control_test_assets
 {
 
 const auto valid_omega6_urdf =
-R"(
+  R"(
     <?xml version="1.0" encoding='utf-8'?>
     <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fd">
         <link name="fd_base"/>
@@ -83,7 +83,7 @@ R"(
 )";
 
 const auto valid_omega3_urdf =
-R"(
+  R"(
     <?xml version="1.0" encoding='utf-8'?>
     <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fd">
         <link name="fd_base"/>
