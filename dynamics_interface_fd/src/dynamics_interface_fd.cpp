@@ -144,8 +144,8 @@ bool DynamicsInterfaceFd::initialize(
   // Setup internal inertia subscriber
   RCLCPP_INFO(LOGGER, "Setting up internal inertia subscriber... please wait...");
   rclcpp::NodeOptions options;
-  std::string node_name = "dynamic_interface_fd_internal_inertia_subscriber_";
-  +std::to_string(std::rand());
+  std::string node_name =
+    "dynamic_interface_fd_internal_inertia_subscriber_" + std::to_string(std::rand());
   RCLCPP_INFO(LOGGER, "Internal inertia subscriber name: %s", node_name.c_str());
   options.arguments({"--ros-args", "-r", "__node:=" + node_name});
   async_node_ = rclcpp::Node::make_shared("_", options);
