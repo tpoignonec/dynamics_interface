@@ -16,11 +16,48 @@
 
 // Based on package "ros-controls/kinematics_interface_kdl", Copyright (c) 2022, PickNik, Inc.
 
+#include <cstdlib>
+#include <ctime>
+
 #include "dynamics_interface_fd/dynamics_interface_fd.hpp"
 
 namespace dynamics_interface_fd
 {
 rclcpp::Logger LOGGER = rclcpp::get_logger("dynamics_interface_fd");
+
+bool fromMsg(const std_msgs::msg::Float64MultiArray & m, Eigen::Matrix<double, 6, 6> & e)
+{
+  int ii = 0;
+  for (int i = 0; i < e.rows(); ++i)
+  {
+    for (int j = 0; j < e.cols(); ++j)
+    {
+      e(i, j) = m.data[ii++];
+    }
+  }
+  return true;
+}
+
+DynamicsInterfaceFd::DynamicsInterfaceFd()
+: initialized(false), rt_fd_inertia_subscriber_ptr_(nullptr)
+{
+  // nothing to do
+}
+
+DynamicsInterfaceFd::~DynamicsInterfaceFd()
+{
+  RCLCPP_INFO(LOGGER, "Deactivating DynamicsInterfaceFd internal communication... please wait...");
+
+  // shutdown node thread
+  if (node_thread_ != nullptr)
+  {
+    executor_.cancel();
+    node_thread_->join();
+    node_thread_.reset();
+    async_node_.reset();
+  }
+  RCLCPP_INFO(LOGGER, "Successfully deactivated!");
+}
 
 bool DynamicsInterfaceFd::initialize(
   std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface,
@@ -62,6 +99,18 @@ bool DynamicsInterfaceFd::initialize(
     root_name_ = robot_tree.getRootSegment()->first;
   }
 
+  // get root name
+  auto fd_inertia_topic_name_param = rclcpp::Parameter();
+  if (parameters_interface->has_parameter("fd_inertia_topic_name"))
+  {
+    parameters_interface->get_parameter("fd_inertia_topic_name", fd_inertia_topic_name_param);
+    fd_inertia_topic_name_ = fd_inertia_topic_name_param.as_string();
+  }
+  else
+  {
+    fd_inertia_topic_name_ = "fd_inertia";
+  }
+
   if (!robot_tree.getChain(root_name_, end_effector_name, chain_))
   {
     RCLCPP_ERROR(
@@ -92,25 +141,52 @@ bool DynamicsInterfaceFd::initialize(
   jac_solver_ = std::make_shared<KDL::ChainJntToJacSolver>(chain_);
   jac_dot_solver_ = std::make_shared<KDL::ChainJntToJacDotSolver>(chain_);
 
+  // Setup internal inertia subscriber
+  RCLCPP_INFO(LOGGER, "Setting up internal inertia subscriber... please wait...");
+  rclcpp::NodeOptions options;
+  std::string node_name = "dynamic_interface_fd_internal_inertia_subscriber_";
+  +std::to_string(std::rand());
+  RCLCPP_INFO(LOGGER, "Internal inertia subscriber name: %s", node_name.c_str());
+  options.arguments({"--ros-args", "-r", "__node:=" + node_name});
+  async_node_ = rclcpp::Node::make_shared("_", options);
+
+  fd_inertia_subscriber_ptr_ = async_node_->create_subscription<std_msgs::msg::Float64MultiArray>(
+    fd_inertia_topic_name_, rclcpp::SystemDefaultsQoS(),
+    [this](const std_msgs::msg::Float64MultiArray::SharedPtr msg)
+    { rt_fd_inertia_subscriber_ptr_.writeFromNonRT(msg); });
+
+  node_thread_ = std::make_unique<std::thread>(
+    [&]()
+    {
+      executor_.add_node(async_node_);
+      executor_.spin();
+      executor_.remove_node(async_node_);
+    });
+
+  // TODO(tpoignonec): wait for subscriber to be set up?
+  RCLCPP_INFO(LOGGER, "Subscriber node successfully set up!");
+
   return true;
 }
 
 bool DynamicsInterfaceFd::fill_joints_if_missing(
-  const Eigen::VectorXd & joint_values,
-  Eigen::VectorXd & joint_values_filled)
+  const Eigen::VectorXd & joint_values, Eigen::VectorXd & joint_values_filled)
 {
-  if (joint_values.size() == 0 || static_cast<size_t>(joint_values.size()) > num_joints_) {
+  if (joint_values.size() == 0 || static_cast<size_t>(joint_values.size()) > num_joints_)
+  {
     // TODO(tpoignonec) add warning
     return false;
   }
 
-  if (joint_values.size() != 3 && joint_values.size() != 6) {
+  if (joint_values.size() != 3 && joint_values.size() != 6)
+  {
     // should be either 3 or 6!
     // TODO(tpoignonec) add warning
     return false;
   }
 
-  if (static_cast<size_t>(joint_values.size()) == num_joints_) {
+  if (static_cast<size_t>(joint_values.size()) == num_joints_)
+  {
     joint_values_filled = joint_values;
     return true;
   }
@@ -170,7 +246,7 @@ bool DynamicsInterfaceFd::calculate_jacobian(
   if (!fill_joints_if_missing(joint_pos, q_.data))
   {
     return false;
-  };
+  }
 
   // calculate Jacobian
   jac_solver_->JntToJac(q_, *jacobian_, link_name_map_[link_name]);
@@ -196,11 +272,11 @@ bool DynamicsInterfaceFd::calculate_jacobian_derivative(
   if (!fill_joints_if_missing(joint_pos, q_.data))
   {
     return false;
-  };
+  }
   if (!fill_joints_if_missing(joint_vel, q_dot_.data))
   {
     return false;
-  };
+  }
 
   q_array_vel_.q = q_;
   q_array_vel_.qdot = q_dot_;
@@ -225,9 +301,41 @@ bool DynamicsInterfaceFd::calculate_inertia(
     return false;
   }
 
-  // TODO
+  // Read inertia matrix from rt subscriber
+  fd_inertia_msg_ = *rt_fd_inertia_subscriber_ptr_.readFromRT();
 
-  return false;
+  // if message exists, load values into references
+  if (!fd_inertia_msg_.get())
+  {
+    RCLCPP_ERROR(LOGGER, "No message received from fd_inertia real-time subscriber.");
+    return false;
+  }
+
+  // check dimension of message
+  if (fd_inertia_msg_->data.size() != static_cast<size_t>(36))
+  {
+    RCLCPP_ERROR(
+      LOGGER, "The size of the inertia matrix msg (%zu) does not match the required size of (6x6)",
+      fd_inertia_msg_->data.size(), num_joints_ * num_joints_);
+    return false;
+  }
+  fromMsg(*fd_inertia_msg_, fd_inertia_);
+
+  // load values from message
+  if (num_joints_ == 3)
+  {
+    inertia = fd_inertia_.block<3, 3>(0, 0);
+  }
+  else if (num_joints_ == 6)
+  {
+    inertia = fd_inertia_;
+  }
+  else
+  {
+    RCLCPP_ERROR(LOGGER, "Invalid number of joints (%lu).", num_joints_);
+    return false;
+  }
+  return true;
 }
 
 bool DynamicsInterfaceFd::calculate_coriolis(
@@ -280,7 +388,7 @@ bool DynamicsInterfaceFd::convert_joint_deltas_to_cartesian_deltas(
   if (!fill_joints_if_missing(joint_pos, q_.data))
   {
     return false;
-  };
+  }
 
   // calculate Jacobian
   jac_solver_->JntToJac(q_, *jacobian_, link_name_map_[link_name]);
@@ -306,7 +414,7 @@ bool DynamicsInterfaceFd::convert_cartesian_deltas_to_joint_deltas(
   if (!fill_joints_if_missing(joint_pos, q_.data))
   {
     return false;
-  };
+  }
 
   // calculate Jacobian
   jac_solver_->JntToJac(q_, *jacobian_, link_name_map_[link_name]);
@@ -369,8 +477,7 @@ bool DynamicsInterfaceFd::verify_initialized()
   return true;
 }
 
-bool DynamicsInterfaceFd::verify_jacobian(
-  const Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian)
+bool DynamicsInterfaceFd::verify_jacobian(const Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian)
 {
   if (jacobian.rows() != jacobian_->rows() || jacobian.cols() != jacobian_->columns())
   {
@@ -385,8 +492,9 @@ bool DynamicsInterfaceFd::verify_jacobian(
 bool DynamicsInterfaceFd::verify_inertia(
   const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia)
 {
-  if (static_cast<size_t>(inertia.rows()) != num_joints_
-  || static_cast<size_t>(inertia.cols()) != num_joints_)
+  if (
+    static_cast<size_t>(inertia.rows()) != num_joints_ ||
+    static_cast<size_t>(inertia.cols()) != num_joints_)
   {
     RCLCPP_ERROR(
       LOGGER,

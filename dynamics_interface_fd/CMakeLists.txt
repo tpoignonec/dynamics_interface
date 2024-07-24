@@ -10,6 +10,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   dynamics_interface
   pluginlib
   tf2_eigen_kdl
+  realtime_tools
 )
 
 # find dependencies

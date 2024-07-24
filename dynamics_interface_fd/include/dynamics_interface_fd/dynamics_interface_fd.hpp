@@ -40,12 +40,19 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include "rclcpp/node_interfaces/node_parameters_interface.hpp"
+#include "realtime_tools/realtime_buffer.h"
+
+#include "std_msgs/msg/float64_multi_array.hpp"
 
 namespace dynamics_interface_fd
 {
 class DynamicsInterfaceFd : public dynamics_interface::DynamicsInterface
 {
 public:
+  DynamicsInterfaceFd();
+
+  virtual ~DynamicsInterfaceFd();
+
   bool initialize(
     std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface,
     const std::string & end_effector_name) override;
@@ -83,7 +90,8 @@ public:
 
 private:
   // methods
-  bool fill_joints_if_missing(const Eigen::VectorXd & joint_values, Eigen::VectorXd & joint_values_filled);
+  bool fill_joints_if_missing(
+    const Eigen::VectorXd & joint_values, Eigen::VectorXd & joint_values_filled);
 
   // verification methods
   bool verify_initialized();
@@ -101,12 +109,20 @@ private:
   std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface_;
   std::unordered_map<std::string, int> link_name_map_;
   double alpha;  // damping term for Jacobian inverse
+  std::string fd_inertia_topic_name_;
   Eigen::MatrixXd I;
 
   // async node for inertia
   rclcpp::Node::SharedPtr async_node_;
   std::unique_ptr<std::thread> node_thread_;
   rclcpp::executors::SingleThreadedExecutor executor_;
+  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr fd_inertia_subscriber_ptr_;
+  std::shared_ptr<std_msgs::msg::Float64MultiArray> fd_inertia_msg_;
+  Eigen::Matrix<double, 6, 6> fd_inertia_;
+
+  // Incoming fd_inertia data
+  realtime_tools::RealtimeBuffer<std::shared_ptr<std_msgs::msg::Float64MultiArray>>
+    rt_fd_inertia_subscriber_ptr_;
 
   // KDL
   KDL::Chain chain_;
