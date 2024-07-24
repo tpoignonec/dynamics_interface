@@ -32,6 +32,18 @@ The package [dynamics_interface_fd](dynamics_interface_fd/src/dynamics_interface
 Since the inertia cannot be computed from the URDF, a asynchronous node is instantiated to subscribe to the `fd_inertia` topic published by a [fd_inertia_broadcaster](https://github.com/ICube-Robotics/forcedimension_ros2/tree/main/fd_controllers/fd_inertia_broadcaster).
 Note that both the coriolis and gravity vector are zero, because they are negligible on most devices (i.e., gravity compensated, no heavy part in rotation).
 
+Typical `.yaml` configuration:
+
+```yaml
+dynamics_interface_fd:
+  plugin_name: dynamics_interface_fd/DynamicsInterfaceFd
+  plugin_package: dynamics_interface
+  base: fd_base
+  tip: fd_ee
+  fd_inertia_topic_name: fd_inertia
+  alpha: 0.0005
+```
+
 __TODO:__
   - compute Coriolis matrix? Does not seem trivial with KDL, but should be easy with [Pinocchio](https://github.com/stack-of-tasks/pinocchio).
   - manage redundancy here? For instance, with some function like `convert_cartesian_wrench_to_joint_torque` that implement null-space objectives under the hood.
