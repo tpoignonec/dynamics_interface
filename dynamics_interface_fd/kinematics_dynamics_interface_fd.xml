@@ -1,0 +1,9 @@
+<library path="dynamics_interface_fd">
+  <class name="dynamics_interface_fd/DynamicsInterfaceFd"
+         type="dynamics_interface_fd::DynamicsInterfaceFd"
+         base_class_type="kinematics_interface::KinematicsInterface">
+    <description>
+      KDL plugin for ros2_control kinematics interface
+    </description>
+  </class>
+</library>
