@@ -3,7 +3,7 @@
 <package format="3">
   <name>dynamics_interface_fd</name>
   <version>0.0.1</version>
-  <description>KDL implementation of ros2_control dynamics interface</description>
+  <description>Implementation of ros2_control dynamics interface for the haptic interface (see forcedimension_ros2 pkg)</description>
   <maintainer email="thibault.poignonec@outlook.fr">Thibault Poignonec</maintainer>
   <license>Apache License 2.0</license>
   <author email="thibault.poignonec@outlook.fr">Thibault Poignonec</author>
