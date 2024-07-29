@@ -119,8 +119,8 @@ bool DynamicsInterfaceKDL::initialize(
   jacobian_ = std::make_shared<KDL::Jacobian>(num_joints_);
   jacobian_derivative_ = std::make_shared<KDL::Jacobian>(num_joints_);
   inertia_ = std::make_shared<KDL::JntSpaceInertiaMatrix>(num_joints_);
-  // coriolis_ = KDL::JntArray(num_joints_);
-  // gravity_ = KDL::JntArray(num_joints_);
+  coriolis_ = KDL::JntArray(num_joints_);
+  gravity_ = KDL::JntArray(num_joints_);
 
   // create KDL solvers
   fk_pos_solver_ = std::make_shared<KDL::ChainFkSolverPos_recursive>(chain_);
