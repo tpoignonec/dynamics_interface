@@ -39,10 +39,10 @@ bool DynamicsInterfaceKDL::initialize(
   auto robot_description = robot_param.as_string();
 
   // get alpha damping term
-  auto alpha_param = rclcpp::Parameter("alpha", 0.000005);
-  if (parameters_interface->has_parameter("alpha"))
+  auto alpha_param = rclcpp::Parameter("dynamics.alpha", 0.000005);
+  if (parameters_interface->has_parameter("dynamics.alpha"))
   {
-    parameters_interface->get_parameter("alpha", alpha_param);
+    parameters_interface->get_parameter("dynamics.alpha", alpha_param);
   }
   alpha = alpha_param.as_double();
 
@@ -52,9 +52,9 @@ bool DynamicsInterfaceKDL::initialize(
 
   // get root name
   auto base_param = rclcpp::Parameter();
-  if (parameters_interface->has_parameter("base"))
+  if (parameters_interface->has_parameter("dynamics.base"))
   {
-    parameters_interface->get_parameter("base", base_param);
+    parameters_interface->get_parameter("dynamics.base", base_param);
     root_name_ = base_param.as_string();
   }
   else
@@ -64,9 +64,9 @@ bool DynamicsInterfaceKDL::initialize(
 
   // get gravity vector in base frame
   auto gravity_param = rclcpp::Parameter();
-  if (parameters_interface->has_parameter("gravity"))
+  if (parameters_interface->has_parameter("dynamics.gravity"))
   {
-    parameters_interface->get_parameter("gravity", gravity_param);
+    parameters_interface->get_parameter("dynamics.gravity", gravity_param);
     std::vector<double> gravity_vec = gravity_param.as_double_array();
     if (gravity_vec.size() != 3)
     {
