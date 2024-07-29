@@ -73,16 +73,16 @@ public:
 
   void loadAlphaParameter()
   {
-    rclcpp::Parameter param("alpha", 0.005);
-    node_->declare_parameter("alpha", 0.005);
+    rclcpp::Parameter param("dynamics.alpha", 0.005);
+    node_->declare_parameter("dynamics.alpha", 0.005);
     node_->set_parameter(param);
   }
 
   void loadGravityParameter()
   {
     std::vector<double> gravity = {0, 0, -9.81};
-    rclcpp::Parameter param_gravity("gravity", gravity);
-    node_->declare_parameter("gravity", gravity);
+    rclcpp::Parameter param_gravity("dynamics.gravity", gravity);
+    node_->declare_parameter("dynamics.gravity", gravity);
     node_->set_parameter(param_gravity);
   }
 
