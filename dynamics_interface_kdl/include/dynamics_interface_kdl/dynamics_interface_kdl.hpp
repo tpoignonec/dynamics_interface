@@ -42,9 +42,18 @@ namespace dynamics_interface_kdl
 class DynamicsInterfaceKDL : public dynamics_interface::DynamicsInterface
 {
 public:
+
+  /**
+   * \brief Initialize plugin. This method must be called before any other.
+   * \param[in] robot_description robot URDF in string format
+   * \param[in] parameters_interface
+   * \param[in] param_namespace namespace for kinematics parameters - defaults to "kinematics"
+   * \return true if successful
+   */
   bool initialize(
+    const std::string & robot_description,
     std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface,
-    const std::string & end_effector_name) override;
+    const std::string & param_namespace) override;
 
   bool calculate_link_transform(
     const Eigen::VectorXd & joint_pos, const std::string & link_name,

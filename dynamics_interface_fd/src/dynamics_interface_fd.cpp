@@ -60,38 +60,57 @@ DynamicsInterfaceFd::~DynamicsInterfaceFd()
 }
 
 bool DynamicsInterfaceFd::initialize(
+  const std::string & robot_description,
   std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface,
-  const std::string & end_effector_name)
+  const std::string & param_namespace)
 {
   // track initialization plugin
   initialized = true;
 
-  // get robot description
-  auto robot_param = rclcpp::Parameter();
-  if (!parameters_interface->get_parameter("robot_description", robot_param))
+  // get parameters
+  std::string ns = !param_namespace.empty() ? param_namespace + "." : "";
+
+  std::string robot_description_local;
+  if (robot_description.empty())
   {
-    RCLCPP_ERROR(LOGGER, "parameter robot_description not set");
+    // If the robot_description input argument is empty, try to get the
+    // robot_description from the node's parameters.
+    auto robot_param = rclcpp::Parameter();
+    if (!parameters_interface->get_parameter(ns + "robot_description", robot_param))
+    {
+      RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
+      return false;
+    }
+    robot_description_local = robot_param.as_string();
+  }
+  else
+  {
+    robot_description_local = robot_description;
+  }
+
+  // get end-effector name
+  auto end_effector_name_param = rclcpp::Parameter("tip");
+  if (parameters_interface->has_parameter(ns + "tip"))
+  {
+    parameters_interface->get_parameter(ns + "tip", end_effector_name_param);
+  }
+  else
+  {
+    RCLCPP_ERROR(LOGGER, "Failed to find end effector name parameter [tip].");
     return false;
   }
-  auto robot_description = robot_param.as_string();
+  std::string end_effector_name = end_effector_name_param.as_string();
 
-  // get alpha damping term
-  auto alpha_param = rclcpp::Parameter("alpha", 0.000005);
-  if (parameters_interface->has_parameter("alpha"))
-  {
-    parameters_interface->get_parameter("alpha", alpha_param);
-  }
-  alpha = alpha_param.as_double();
 
   // create kinematic chain
   KDL::Tree robot_tree;
-  kdl_parser::treeFromString(robot_description, robot_tree);
+  kdl_parser::treeFromString(robot_description_local, robot_tree);
 
   // get root name
   auto base_param = rclcpp::Parameter();
-  if (parameters_interface->has_parameter("base"))
+  if (parameters_interface->has_parameter(ns + "base"))
   {
-    parameters_interface->get_parameter("base", base_param);
+    parameters_interface->get_parameter(ns + "base", base_param);
     root_name_ = base_param.as_string();
   }
   else
@@ -99,11 +118,20 @@ bool DynamicsInterfaceFd::initialize(
     root_name_ = robot_tree.getRootSegment()->first;
   }
 
+
+  if (!robot_tree.getChain(root_name_, end_effector_name, chain_))
+  {
+    RCLCPP_ERROR(
+      LOGGER, "failed to find chain from robot root %s to end effector %s", root_name_.c_str(),
+      end_effector_name.c_str());
+    return false;
+  }
+
   // get root name
   auto fd_inertia_topic_name_param = rclcpp::Parameter();
-  if (parameters_interface->has_parameter("fd_inertia_topic_name"))
+  if (parameters_interface->has_parameter(ns + "fd_inertia_topic_name"))
   {
-    parameters_interface->get_parameter("fd_inertia_topic_name", fd_inertia_topic_name_param);
+    parameters_interface->get_parameter(ns + "fd_inertia_topic_name", fd_inertia_topic_name_param);
     fd_inertia_topic_name_ = fd_inertia_topic_name_param.as_string();
   }
   else
@@ -124,6 +152,14 @@ bool DynamicsInterfaceFd::initialize(
   {
     link_name_map_[chain_.getSegment(i).getName()] = i + 1;
   }
+
+  // get alpha damping term
+  auto alpha_param = rclcpp::Parameter("alpha", 0.000005);
+  if (parameters_interface->has_parameter(ns + "alpha"))
+  {
+    parameters_interface->get_parameter(ns + "alpha", alpha_param);
+  }
+  alpha = alpha_param.as_double();
 
   // allocate dynamics memory
   num_joints_ = chain_.getNrOfJoints();
