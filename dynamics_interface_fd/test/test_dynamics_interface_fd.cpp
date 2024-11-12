@@ -422,8 +422,7 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_no_robot_description)
   loadAlphaParameter();
   loadGravityParameter();
 
-  ASSERT_FALSE(
-    kyn_->initialize("", node_->get_node_parameters_interface(), "dynamics"));
+  ASSERT_FALSE(kyn_->initialize("", node_->get_node_parameters_interface(), "dynamics"));
 }
 
 TEST_F(TestDynamicsFdPlugin, FD_plugin_as_kinematics_interface_only)
