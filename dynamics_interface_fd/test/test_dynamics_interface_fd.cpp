@@ -116,22 +116,30 @@ public:
 
   void loadAlphaParameter()
   {
-    rclcpp::Parameter param("alpha", 0.005);
-    node_->declare_parameter("alpha", 0.005);
+    rclcpp::Parameter param("dynamics.alpha", 0.005);
+    node_->declare_parameter("dynamics.alpha", 0.005);
     node_->set_parameter(param);
   }
 
   void loadGravityParameter()
   {
     std::vector<double> gravity = {0, 0, -9.81};
-    rclcpp::Parameter param_gravity("gravity", gravity);
-    node_->declare_parameter("gravity", gravity);
+    rclcpp::Parameter param_gravity("dynamics.gravity", gravity);
+    node_->declare_parameter("dynamics.gravity", gravity);
     node_->set_parameter(param_gravity);
+  }
+
+  void loadEndEffectorNameParameter(const std::string & end_effector_name)
+  {
+    rclcpp::Parameter param_ee("dynamics.tip", end_effector_name);
+    node_->declare_parameter("dynamics.tip", end_effector_name);
+    node_->set_parameter(param_ee);
   }
 
   void loadAllParameters()
   {
     loadURDFParameter(robot_description_omega6);
+    loadEndEffectorNameParameter(end_effector_);
     loadAlphaParameter();
     loadGravityParameter();
   }
@@ -219,6 +227,7 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega3_urdf)
 
   // load robot description and alpha to parameter server
   loadURDFParameter(robot_description_omega3);
+  loadEndEffectorNameParameter(end_effector_);
   loadAlphaParameter();
   loadGravityParameter();
 
@@ -381,7 +390,7 @@ TEST_F(TestDynamicsFdPlugin, incorrect_input_sizes)
   auto robot_description_str = robot_param.as_string();
 
   ASSERT_TRUE(
-    kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
+    dyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
   // define correct values
   Eigen::Matrix<double, Eigen::Dynamic, 1> pos =
@@ -420,9 +429,21 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_no_robot_description)
 {
   // load alpha to parameter server
   loadAlphaParameter();
+  loadEndEffectorNameParameter(end_effector_);
   loadGravityParameter();
 
-  ASSERT_FALSE(kyn_->initialize("", node_->get_node_parameters_interface(), "dynamics"));
+  ASSERT_FALSE(dyn_->initialize("", node_->get_node_parameters_interface(), "dynamics"));
+}
+
+TEST_F(TestDynamicsFdPlugin, FD_plugin_no_tip)
+{
+  loadURDFParameter(robot_description_omega6);
+  loadAlphaParameter();
+  loadGravityParameter();
+
+  auto robot_param = rclcpp::Parameter();
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
+  ASSERT_FALSE(dyn_->initialize("", node_->get_node_parameters_interface(), "dynamics"));
 }
 
 TEST_F(TestDynamicsFdPlugin, FD_plugin_as_kinematics_interface_only)
