@@ -145,7 +145,8 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega6_urdf)
   loadAllParameters();
 
   // initialize the  plugin
-  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
 
   // publish inertia matrix
@@ -222,7 +223,8 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega3_urdf)
   loadGravityParameter();
 
   // initialize the  plugin
-  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
 
   // publish inertia matrix
@@ -294,7 +296,8 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_std_vector)
   loadAllParameters();
 
   // initialize the  plugin
-  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
 
   // publish inertia matrix
   Eigen::Matrix<double, 6, 6> mock_inertia = 2 * Eigen::Matrix<double, 6, 6>::Identity();
@@ -354,7 +357,8 @@ TEST_F(TestDynamicsFdPlugin, no_inertia_published)
   loadAllParameters();
 
   // initialize the  plugin
-  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
 
   // dummy joint position and velocity
@@ -372,8 +376,12 @@ TEST_F(TestDynamicsFdPlugin, incorrect_input_sizes)
   // load robot description and alpha to parameter server
   loadAllParameters();
 
-  // initialize the  plugin
-  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
+  auto robot_description_str = robot_param.as_string();
+
+  ASSERT_TRUE(
+    kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
   // define correct values
   Eigen::Matrix<double, Eigen::Dynamic, 1> pos =
@@ -413,7 +421,9 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_no_robot_description)
   // load alpha to parameter server
   loadAlphaParameter();
   loadGravityParameter();
-  ASSERT_FALSE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+
+  ASSERT_FALSE(
+    kyn_->initialize("", node_->get_node_parameters_interface(), "dynamics"));
 }
 
 TEST_F(TestDynamicsFdPlugin, FD_plugin_as_kinematics_interface_only)
@@ -422,7 +432,14 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_as_kinematics_interface_only)
   loadAllParameters();
 
   // initialize the  plugin
-  ASSERT_TRUE(kyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+
+  // initialize the  plugin
+  auto robot_param = rclcpp::Parameter();
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
+  auto robot_description_str = robot_param.as_string();
+
+  ASSERT_TRUE(
+    kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
   // dummy joint position and velocity
   Eigen::Matrix<double, Eigen::Dynamic, 1> pos =

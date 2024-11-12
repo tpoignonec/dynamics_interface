@@ -101,12 +101,9 @@ TEST_F(TestKDLPlugin, KDL_plugin_function)
 
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
-  if (!node_->get_parameter("robot_description", robot_param))
-  {
-    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
-    return false;
-  }
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   auto robot_description_str = robot_param.as_string();
+
   ASSERT_TRUE(
     kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
@@ -161,11 +158,8 @@ TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
 
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
-  if (!node_->get_parameter("robot_description", robot_param))
-  {
-    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
-    return false;
-  }
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
+
   auto robot_description_str = robot_param.as_string();
   ASSERT_TRUE(
     kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
@@ -219,12 +213,9 @@ TEST_F(TestKDLPlugin, incorrect_input_sizes)
 
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
-  if (!node_->get_parameter("robot_description", robot_param))
-  {
-    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
-    return false;
-  }
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   auto robot_description_str = robot_param.as_string();
+
   ASSERT_TRUE(
     kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
@@ -266,7 +257,8 @@ TEST_F(TestKDLPlugin, KDL_plugin_no_robot_description)
   loadGravityParameter();
 
   // initialize the  plugin
-  auto robot_description_str = robot_param.as_string();
+  auto robot_param = rclcpp::Parameter();
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   ASSERT_TRUE(kyn_->initialize("", node_->get_node_parameters_interface(), "dynamics"));
 }
 
@@ -278,12 +270,9 @@ TEST_F(TestKDLPlugin, KDL_plugin_no_gravity)
 
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
-  if (!node_->get_parameter("robot_description", robot_param))
-  {
-    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
-    return false;
-  }
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   auto robot_description_str = robot_param.as_string();
+
   ASSERT_TRUE(
     kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 }
@@ -295,11 +284,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_as_kinematics_interface_only)
 
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
-  if (!node_->get_parameter("robot_description", robot_param))
-  {
-    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
-    return false;
-  }
+  ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   auto robot_description_str = robot_param.as_string();
   ASSERT_TRUE(
     kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
