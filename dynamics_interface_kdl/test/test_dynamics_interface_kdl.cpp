@@ -100,7 +100,15 @@ TEST_F(TestKDLPlugin, KDL_plugin_function)
   loadAllParameters();
 
   // initialize the  plugin
-  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  if (!node_->get_parameter("robot_description", robot_param))
+  {
+    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
+    return false;
+  }
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
   // dummy joint position and velocity
   Eigen::Matrix<double, Eigen::Dynamic, 1> pos = Eigen::Matrix<double, 2, 1>::Zero();
@@ -152,7 +160,15 @@ TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
   loadAllParameters();
 
   // initialize the  plugin
-  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  if (!node_->get_parameter("robot_description", robot_param))
+  {
+    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
+    return false;
+  }
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
   // calculate end effector transform
   std::vector<double> pos = {0, 0};
@@ -202,7 +218,15 @@ TEST_F(TestKDLPlugin, incorrect_input_sizes)
   loadAllParameters();
 
   // initialize the  plugin
-  ASSERT_TRUE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  if (!node_->get_parameter("robot_description", robot_param))
+  {
+    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
+    return false;
+  }
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
   // define correct values
   Eigen::Matrix<double, Eigen::Dynamic, 1> pos = Eigen::Matrix<double, 2, 1>::Zero();
@@ -240,7 +264,10 @@ TEST_F(TestKDLPlugin, KDL_plugin_no_robot_description)
   // load alpha to parameter server
   loadAlphaParameter();
   loadGravityParameter();
-  ASSERT_FALSE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+
+  // initialize the  plugin
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(kyn_->initialize("", node_->get_node_parameters_interface(), "dynamics"));
 }
 
 TEST_F(TestKDLPlugin, KDL_plugin_no_gravity)
@@ -248,7 +275,17 @@ TEST_F(TestKDLPlugin, KDL_plugin_no_gravity)
   // load alpha to parameter server
   loadURDFParameter();
   loadAlphaParameter();
-  ASSERT_FALSE(dyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+
+  // initialize the  plugin
+  auto robot_param = rclcpp::Parameter();
+  if (!node_->get_parameter("robot_description", robot_param))
+  {
+    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
+    return false;
+  }
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 }
 
 TEST_F(TestKDLPlugin, KDL_plugin_as_kinematics_interface_only)
@@ -257,7 +294,15 @@ TEST_F(TestKDLPlugin, KDL_plugin_as_kinematics_interface_only)
   loadAllParameters();
 
   // initialize the  plugin
-  ASSERT_TRUE(kyn_->initialize(node_->get_node_parameters_interface(), end_effector_));
+  auto robot_param = rclcpp::Parameter();
+  if (!node_->get_parameter("robot_description", robot_param))
+  {
+    RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
+    return false;
+  }
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    kyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 
   // dummy joint position and velocity
   Eigen::Matrix<double, Eigen::Dynamic, 1> pos = Eigen::Matrix<double, 2, 1>::Zero();
