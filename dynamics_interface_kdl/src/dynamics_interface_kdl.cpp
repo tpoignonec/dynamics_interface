@@ -30,7 +30,6 @@ bool DynamicsInterfaceKDL::initialize(
   // track initialization plugin
   initialized = true;
 
-
   // get parameters
   std::string ns = !param_namespace.empty() ? param_namespace + "." : "";
 
@@ -65,7 +64,6 @@ bool DynamicsInterfaceKDL::initialize(
   }
   std::string end_effector_name = end_effector_name_param.as_string();
 
-
   // create kinematic chain
   KDL::Tree robot_tree;
   kdl_parser::treeFromString(robot_description_local, robot_tree);
@@ -81,7 +79,6 @@ bool DynamicsInterfaceKDL::initialize(
   {
     root_name_ = robot_tree.getRootSegment()->first;
   }
-
 
   if (!robot_tree.getChain(root_name_, end_effector_name, chain_))
   {
@@ -104,7 +101,6 @@ bool DynamicsInterfaceKDL::initialize(
   {
     link_name_map_[chain_.getSegment(i).getName()] = i + 1;
   }
-
 
   // get gravity vector in base frame
   auto gravity_param = rclcpp::Parameter();

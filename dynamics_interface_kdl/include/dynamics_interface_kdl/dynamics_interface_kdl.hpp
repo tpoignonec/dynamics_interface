@@ -42,7 +42,6 @@ namespace dynamics_interface_kdl
 class DynamicsInterfaceKDL : public dynamics_interface::DynamicsInterface
 {
 public:
-
   /**
    * \brief Initialize plugin. This method must be called before any other.
    * \param[in] robot_description robot URDF in string format

@@ -101,7 +101,6 @@ bool DynamicsInterfaceFd::initialize(
   }
   std::string end_effector_name = end_effector_name_param.as_string();
 
-
   // create kinematic chain
   KDL::Tree robot_tree;
   kdl_parser::treeFromString(robot_description_local, robot_tree);
@@ -117,7 +116,6 @@ bool DynamicsInterfaceFd::initialize(
   {
     root_name_ = robot_tree.getRootSegment()->first;
   }
-
 
   if (!robot_tree.getChain(root_name_, end_effector_name, chain_))
   {
