@@ -40,7 +40,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include "rclcpp/node_interfaces/node_parameters_interface.hpp"
-#include "realtime_tools/realtime_buffer.h"
+#include "realtime_tools/realtime_buffer.hpp"
 
 #include "std_msgs/msg/float64_multi_array.hpp"
 
