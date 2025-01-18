@@ -349,7 +349,8 @@ bool DynamicsInterfaceFd::calculate_inertia(
   if (fd_inertia_msg_->data.size() != static_cast<size_t>(36))
   {
     RCLCPP_ERROR(
-      LOGGER, "The size of the inertia matrix msg (%zu) does not match the required size of (6 x 6)",
+      LOGGER,
+      "The size of the inertia matrix msg (%zu) does not match the required size of (6 x 6)",
       fd_inertia_msg_->data.size());
     return false;
   }
