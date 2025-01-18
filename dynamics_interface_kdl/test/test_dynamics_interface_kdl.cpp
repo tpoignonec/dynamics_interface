@@ -64,7 +64,7 @@ public:
   void loadURDFParameter()
   {
     auto urdf = std::string(ros2_control_test_assets::urdf_head) +
-                std::string(ros2_control_test_assets::urdf_tail);
+      std::string(ros2_control_test_assets::urdf_tail);
 
     rclcpp::Parameter param_urdf("robot_description", urdf);
     node_->declare_parameter("robot_description", "");
@@ -153,8 +153,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_function)
     dyn_->convert_joint_deltas_to_cartesian_deltas(pos, delta_theta, end_effector_, delta_x_est));
 
   // Ensure kinematics math is correct
-  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i)
-  {
+  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i) {
     ASSERT_NEAR(delta_x[i], delta_x_est[i], 0.02);
   }
 }
@@ -208,8 +207,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_function_std_vector)
     dyn_->convert_joint_deltas_to_cartesian_deltas(pos, delta_theta, end_effector_, delta_x_est));
 
   // Ensure kinematics math is correct
-  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i)
-  {
+  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i) {
     ASSERT_NEAR(delta_x[i], delta_x_est[i], 0.02);
   }
 }
@@ -336,8 +334,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_as_kinematics_interface_only)
     kyn_->convert_joint_deltas_to_cartesian_deltas(pos, delta_theta, end_effector_, delta_x_est));
 
   // Ensure kinematics math is correct
-  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i)
-  {
+  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i) {
     ASSERT_NEAR(delta_x[i], delta_x_est[i], 0.02);
   }
 }
