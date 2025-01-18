@@ -259,6 +259,7 @@ TEST_F(TestKDLPlugin, incorrect_input_sizes)
 TEST_F(TestKDLPlugin, KDL_plugin_no_robot_description)
 {
   // load alpha to parameter server
+  loadURDFParameter();
   loadAlphaParameter();
   loadEndEffectorNameParameter(end_effector_);
   loadGravityParameter();
