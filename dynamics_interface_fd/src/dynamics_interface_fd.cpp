@@ -71,6 +71,21 @@ bool DynamicsInterfaceFd::initialize(
     return false;
   }
 
+  // get parameters
+  std::string ns = !param_namespace.empty() ? param_namespace + "." : "";
+
+  // get inertia topic name
+  auto fd_inertia_topic_name_param = rclcpp::Parameter();
+  if (parameters_interface->has_parameter(ns + "fd_inertia_topic_name"))
+  {
+    parameters_interface->get_parameter(ns + "fd_inertia_topic_name", fd_inertia_topic_name_param);
+    fd_inertia_topic_name_ = fd_inertia_topic_name_param.as_string();
+  }
+  else
+  {
+    fd_inertia_topic_name_ = "fd_inertia";
+  }
+
   // Setup internal inertia subscriber
   RCLCPP_INFO(LOGGER, "Setting up internal inertia subscriber... please wait...");
   rclcpp::NodeOptions options;
