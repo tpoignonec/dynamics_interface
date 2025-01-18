@@ -7,7 +7,7 @@ endif()
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   kdl_parser
-  dynamics_interface
+  dynamics_interface_kdl
   pluginlib
   tf2_eigen_kdl
   realtime_tools
