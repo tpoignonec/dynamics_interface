@@ -321,6 +321,24 @@ TEST_F(TestKDLPlugin, KDL_plugin_as_kinematics_interface_only)
   // calculate jacobian
   Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian = Eigen::Matrix<double, 6, 2>::Zero();
   ASSERT_TRUE(kyn_->calculate_jacobian(pos, end_effector_, jacobian));
+  
+  
+  // calculate jacobian inverse
+  Eigen::Matrix<double, Eigen::Dynamic, 6> jacobian_inverse =
+    jacobian.completeOrthogonalDecomposition().pseudoInverse();
+    
+  Eigen::Matrix<double, Eigen::Dynamic, 6> jacobian_inverse_est =
+    Eigen::Matrix<double, 2, 6>::Zero();
+  ASSERT_TRUE(kyn_->calculate_jacobian_inverse(pos, end_effector_, jacobian_inverse_est));
+
+  // ensure jacobian inverse math is correct
+  for (size_t i = 0; i < static_cast<size_t>(jacobian_inverse.rows()); ++i)
+  {
+    for (size_t j = 0; j < static_cast<size_t>(jacobian_inverse.cols()); ++j)
+    {
+      ASSERT_NEAR(jacobian_inverse(i, j), jacobian_inverse_est(i, j), 0.02);
+    }
+  }
 
   // convert cartesian delta to joint delta
   Eigen::Matrix<double, 6, 1> delta_x = Eigen::Matrix<double, 6, 1>::Zero();
