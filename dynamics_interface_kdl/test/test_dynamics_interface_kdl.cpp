@@ -294,7 +294,7 @@ TEST_F(TestKDLPlugin, KDL_plugin_no_gravity)
   ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   auto robot_description_str = robot_param.as_string();
 
-  ASSERT_TRUE(
+  ASSERT_FALSE(
     dyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
 }
 
