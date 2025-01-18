@@ -75,10 +75,8 @@ public:
   {
     // wait for subscriber
     size_t wait_count = 0;
-    while (node_->count_subscribers(fd_inertia_topic_name) == 0)
-    {
-      if (wait_count >= 5)
-      {
+    while (node_->count_subscribers(fd_inertia_topic_name) == 0) {
+      if (wait_count >= 5) {
         auto error_msg =
           std::string("publishing to ") + fd_inertia_topic_name + " but no node subscribes to it";
         throw std::runtime_error(error_msg);
@@ -90,10 +88,8 @@ public:
     // publish
     std_msgs::msg::Float64MultiArray msg;
     msg.data.resize(36);
-    for (size_t i = 0; i < 6; i++)
-    {
-      for (size_t j = 0; j < 6; j++)
-      {
+    for (size_t i = 0; i < 6; i++) {
+      for (size_t j = 0; j < 6; j++) {
         msg.data[i * 6 + j] = inertia(i, j);
       }
     }
@@ -155,6 +151,9 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega6_urdf)
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
   ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    dyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
   RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
 
   // publish inertia matrix
@@ -214,8 +213,7 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega6_urdf)
     dyn_->convert_joint_deltas_to_cartesian_deltas(pos, delta_theta, end_effector_, delta_x_est));
 
   // Ensure kinematics math is correct
-  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i)
-  {
+  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i) {
     ASSERT_NEAR(delta_x[i], delta_x_est[i], 0.02);
   }
   RCLCPP_INFO(node_->get_logger(), "All good so far...");
@@ -234,6 +232,9 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega3_urdf)
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
   ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    dyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
   RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
 
   // publish inertia matrix
@@ -293,8 +294,7 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_with_omega3_urdf)
     dyn_->convert_joint_deltas_to_cartesian_deltas(pos, delta_theta, end_effector_, delta_x_est));
 
   // Ensure kinematics math is correct
-  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i)
-  {
+  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i) {
     ASSERT_NEAR(delta_x[i], delta_x_est[i], 0.02);
   }
 }
@@ -307,6 +307,10 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_std_vector)
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
   ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    dyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
+  RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
 
   // publish inertia matrix
   Eigen::Matrix<double, 6, 6> mock_inertia = 2 * Eigen::Matrix<double, 6, 6>::Identity();
@@ -352,8 +356,7 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_function_std_vector)
     dyn_->convert_joint_deltas_to_cartesian_deltas(pos, delta_theta, end_effector_, delta_x_est));
 
   // Ensure kinematics math is correct
-  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i)
-  {
+  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i) {
     ASSERT_NEAR(delta_x[i], delta_x_est[i], 0.02);
   }
 }
@@ -368,6 +371,9 @@ TEST_F(TestDynamicsFdPlugin, no_inertia_published)
   // initialize the  plugin
   auto robot_param = rclcpp::Parameter();
   ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
+  auto robot_description_str = robot_param.as_string();
+  ASSERT_TRUE(
+    dyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
   RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
 
   // dummy joint position and velocity
@@ -388,9 +394,9 @@ TEST_F(TestDynamicsFdPlugin, incorrect_input_sizes)
   auto robot_param = rclcpp::Parameter();
   ASSERT_TRUE(node_->get_parameter("robot_description", robot_param));
   auto robot_description_str = robot_param.as_string();
-
   ASSERT_TRUE(
     dyn_->initialize(robot_description_str, node_->get_node_parameters_interface(), "dynamics"));
+  RCLCPP_INFO(node_->get_logger(), "Plugin instantiated successfully!");
 
   // define correct values
   Eigen::Matrix<double, Eigen::Dynamic, 1> pos =
@@ -490,8 +496,7 @@ TEST_F(TestDynamicsFdPlugin, FD_plugin_as_kinematics_interface_only)
     kyn_->convert_joint_deltas_to_cartesian_deltas(pos, delta_theta, end_effector_, delta_x_est));
 
   // Ensure kinematics math is correct
-  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i)
-  {
+  for (size_t i = 0; i < static_cast<size_t>(delta_x.size()); ++i) {
     ASSERT_NEAR(delta_x[i], delta_x_est[i], 0.02);
   }
 }

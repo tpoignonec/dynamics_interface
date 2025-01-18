@@ -13,7 +13,7 @@
 
   <depend>eigen</depend>
   <depend>kdl_parser</depend>
-  <depend>dynamics_interface</depend>
+  <depend>dynamics_interface_kdl</depend>
   <depend>pluginlib</depend>
   <depend>tf2_eigen_kdl</depend>
   <depend>realtime_tools</depend>

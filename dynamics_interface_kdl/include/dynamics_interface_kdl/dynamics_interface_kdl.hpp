@@ -67,6 +67,10 @@ public:
     const std::string & link_name,
     Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian_derivative) override;
 
+  bool calculate_jacobian_inverse(
+    const Eigen::VectorXd & joint_pos, const std::string & link_name,
+    Eigen::Matrix<double, Eigen::Dynamic, 6> & jacobian_inverse) override;
+
   bool calculate_inertia(
     const Eigen::VectorXd & joint_pos,
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia) override;
@@ -85,12 +89,13 @@ public:
     const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & delta_theta,
     const std::string & link_name, Eigen::Matrix<double, 6, 1> & delta_x) override;
 
-private:
+protected:
   // verification methods
   bool verify_initialized();
   bool verify_link_name(const std::string & link_name);
   bool verify_joint_vector(const Eigen::VectorXd & joint_vector);
   bool verify_jacobian(const Eigen::Matrix<double, 6, Eigen::Dynamic> & jacobian);
+  bool verify_jacobian_inverse(const Eigen::Matrix<double, Eigen::Dynamic, 6> & jacobian);
   bool verify_inertia(const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> & inertia);
   bool verify_coriolis(const Eigen::VectorXd & coriolis);
   bool verify_gravity(const Eigen::VectorXd & gravity);
@@ -105,6 +110,7 @@ private:
   KDL::JntArrayVel q_array_vel_;
   KDL::Frame frame_;
   std::shared_ptr<KDL::Jacobian> jacobian_, jacobian_derivative_;
+  std::shared_ptr<Eigen::Matrix<double, Eigen::Dynamic, 6>> jacobian_inverse_;
   std::shared_ptr<KDL::JntSpaceInertiaMatrix> inertia_;
   KDL::JntArray coriolis_, gravity_;
   std::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
