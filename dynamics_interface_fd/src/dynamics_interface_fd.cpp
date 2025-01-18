@@ -63,9 +63,6 @@ bool DynamicsInterfaceFd::initialize(
   std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface,
   const std::string & param_namespace)
 {
-  // track initialization plugin
-  initialized = true;
-
   if (!DynamicsInterfaceKDL::initialize(robot_description, parameters_interface, param_namespace)) {
     RCLCPP_ERROR(LOGGER, "Failed to initialize DynamicsInterfaceKDL");
     return false;
