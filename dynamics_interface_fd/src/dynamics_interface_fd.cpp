@@ -53,8 +53,6 @@ DynamicsInterfaceFd::~DynamicsInterfaceFd()
     node_thread_.reset();
     async_node_.reset();
   }
-  // Call the destructor of the base class
-  DynamicsInterfaceKDL::~DynamicsInterfaceKDL();
   RCLCPP_INFO(LOGGER, "Successfully deactivated!");
 }
 
