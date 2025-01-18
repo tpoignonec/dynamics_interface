@@ -46,11 +46,10 @@ bool DynamicsInterfaceKDL::initialize(
   } else {
     robot_description_local = robot_description;
   }
-  
+
   // get alpha damping term
   auto alpha_param = rclcpp::Parameter("alpha", 0.000005);
-  if (parameters_interface->has_parameter(ns + "alpha"))
-  {
+  if (parameters_interface->has_parameter(ns + "alpha")) {
     parameters_interface->get_parameter(ns + "alpha", alpha_param);
   }
   alpha = alpha_param.as_double();

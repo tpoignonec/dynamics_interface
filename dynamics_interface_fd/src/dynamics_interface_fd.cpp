@@ -71,13 +71,10 @@ bool DynamicsInterfaceFd::initialize(
 
   // get inertia topic name
   auto fd_inertia_topic_name_param = rclcpp::Parameter();
-  if (parameters_interface->has_parameter(ns + "fd_inertia_topic_name"))
-  {
+  if (parameters_interface->has_parameter(ns + "fd_inertia_topic_name")) {
     parameters_interface->get_parameter(ns + "fd_inertia_topic_name", fd_inertia_topic_name_param);
     fd_inertia_topic_name_ = fd_inertia_topic_name_param.as_string();
-  }
-  else
-  {
+  } else {
     fd_inertia_topic_name_ = "fd_inertia";
   }
 
