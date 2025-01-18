@@ -23,38 +23,56 @@ namespace dynamics_interface_kdl
 rclcpp::Logger LOGGER = rclcpp::get_logger("dynamics_interface_kdl");
 
 bool DynamicsInterfaceKDL::initialize(
+  const std::string & robot_description,
   std::shared_ptr<rclcpp::node_interfaces::NodeParametersInterface> parameters_interface,
-  const std::string & end_effector_name)
+  const std::string & param_namespace)
 {
   // track initialization plugin
   initialized = true;
 
-  // get robot description
-  auto robot_param = rclcpp::Parameter();
-  if (!parameters_interface->get_parameter("robot_description", robot_param))
+  // get parameters
+  std::string ns = !param_namespace.empty() ? param_namespace + "." : "";
+
+  std::string robot_description_local;
+  if (robot_description.empty())
   {
-    RCLCPP_ERROR(LOGGER, "parameter robot_description not set");
+    // If the robot_description input argument is empty, try to get the
+    // robot_description from the node's parameters.
+    auto robot_param = rclcpp::Parameter();
+    if (!parameters_interface->get_parameter("robot_description", robot_param))
+    {
+      RCLCPP_ERROR(LOGGER, "parameter robot_description not set in kinematics_interface_kdl");
+      return false;
+    }
+    robot_description_local = robot_param.as_string();
+  }
+  else
+  {
+    robot_description_local = robot_description;
+  }
+
+  // get end-effector name
+  auto end_effector_name_param = rclcpp::Parameter("tip");
+  if (parameters_interface->has_parameter(ns + "tip"))
+  {
+    parameters_interface->get_parameter(ns + "tip", end_effector_name_param);
+  }
+  else
+  {
+    RCLCPP_ERROR(LOGGER, "Failed to find end effector name parameter [tip].");
     return false;
   }
-  auto robot_description = robot_param.as_string();
-
-  // get alpha damping term
-  auto alpha_param = rclcpp::Parameter("dynamics.alpha", 0.000005);
-  if (parameters_interface->has_parameter("dynamics.alpha"))
-  {
-    parameters_interface->get_parameter("dynamics.alpha", alpha_param);
-  }
-  alpha = alpha_param.as_double();
+  std::string end_effector_name = end_effector_name_param.as_string();
 
   // create kinematic chain
   KDL::Tree robot_tree;
-  kdl_parser::treeFromString(robot_description, robot_tree);
+  kdl_parser::treeFromString(robot_description_local, robot_tree);
 
   // get root name
   auto base_param = rclcpp::Parameter();
-  if (parameters_interface->has_parameter("dynamics.base"))
+  if (parameters_interface->has_parameter(ns + "base"))
   {
-    parameters_interface->get_parameter("dynamics.base", base_param);
+    parameters_interface->get_parameter(ns + "base", base_param);
     root_name_ = base_param.as_string();
   }
   else
@@ -62,11 +80,33 @@ bool DynamicsInterfaceKDL::initialize(
     root_name_ = robot_tree.getRootSegment()->first;
   }
 
+  if (!robot_tree.getChain(root_name_, end_effector_name, chain_))
+  {
+    RCLCPP_ERROR(
+      LOGGER, "failed to find chain from robot root %s to end effector %s", root_name_.c_str(),
+      end_effector_name.c_str());
+    return false;
+  }
+
+  if (!robot_tree.getChain(root_name_, end_effector_name, chain_))
+  {
+    RCLCPP_ERROR(
+      LOGGER, "failed to find chain from robot root %s to end effector %s", root_name_.c_str(),
+      end_effector_name.c_str());
+    return false;
+  }
+
+  // create map from link names to their index
+  for (size_t i = 0; i < chain_.getNrOfSegments(); ++i)
+  {
+    link_name_map_[chain_.getSegment(i).getName()] = i + 1;
+  }
+
   // get gravity vector in base frame
   auto gravity_param = rclcpp::Parameter();
-  if (parameters_interface->has_parameter("dynamics.gravity"))
+  if (parameters_interface->has_parameter(ns + "gravity"))
   {
-    parameters_interface->get_parameter("dynamics.gravity", gravity_param);
+    parameters_interface->get_parameter(ns + "gravity", gravity_param);
     std::vector<double> gravity_vec = gravity_param.as_double_array();
     if (gravity_vec.size() != 3)
     {
@@ -92,20 +132,6 @@ bool DynamicsInterfaceKDL::initialize(
       LOGGER, "Gravity set to %f %f %f w.r.t. base frame '%s'.",
       gravity_in_base_frame_[0], gravity_in_base_frame_[1], gravity_in_base_frame_[2], root_name_.c_str());
     */
-  }
-
-  if (!robot_tree.getChain(root_name_, end_effector_name, chain_))
-  {
-    RCLCPP_ERROR(
-      LOGGER, "failed to find chain from robot root %s to end effector %s", root_name_.c_str(),
-      end_effector_name.c_str());
-    return false;
-  }
-
-  // create map from link names to their index
-  for (size_t i = 0; i < chain_.getNrOfSegments(); ++i)
-  {
-    link_name_map_[chain_.getSegment(i).getName()] = i + 1;
   }
 
   // allocate dynamics memory
