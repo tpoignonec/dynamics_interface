@@ -89,7 +89,7 @@ public:
     const Eigen::VectorXd & joint_pos, const Eigen::VectorXd & delta_theta,
     const std::string & link_name, Eigen::Matrix<double, 6, 1> & delta_x) override;
 
-private:
+protected:
   // verification methods
   bool verify_initialized();
   bool verify_link_name(const std::string & link_name);
